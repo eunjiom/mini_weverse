@@ -44,7 +44,29 @@ subprojects {
         testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
     }
 
-    tasks.withType(Test).configureEach {
+    tasks.named('test') {
         useJUnitPlatform()
+    }
+
+    // 순수 단위 테스트만 (@Tag("unit")). PR CI에서 빠른 피드백용으로 실행한다.
+    tasks.register('unitTest', Test) {
+        description = 'Runs unit tests only (@Tag("unit"))'
+        group = 'verification'
+        testClassesDirs = sourceSets.test.output.classesDirs
+        classpath = sourceSets.test.runtimeClasspath
+        useJUnitPlatform {
+            includeTags 'unit'
+        }
+    }
+
+    // Testcontainers 등을 사용하는 통합 테스트만 (@Tag("integration")). dev merge 시 실행한다.
+    tasks.register('integrationTest', Test) {
+        description = 'Runs integration tests only (@Tag("integration"))'
+        group = 'verification'
+        testClassesDirs = sourceSets.test.output.classesDirs
+        classpath = sourceSets.test.runtimeClasspath
+        useJUnitPlatform {
+            includeTags 'integration'
+        }
     }
 }

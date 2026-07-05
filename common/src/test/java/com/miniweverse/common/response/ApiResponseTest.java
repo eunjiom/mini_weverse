@@ -3,9 +3,11 @@ package com.miniweverse.common.response;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.miniweverse.common.exception.ErrorCode;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 
+@Tag("unit")
 class ApiResponseTest {
 
     private enum TestErrorCode implements ErrorCode {
