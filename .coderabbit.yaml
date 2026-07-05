@@ -1,0 +1,16 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+language: "ko-KR"
+
+reviews:
+  profile: "chill"
+  high_level_summary: true
+  poem: false
+  auto_review:
+    enabled: true
+    drafts: false
+  path_instructions:
+    - path: "**/*.java"
+      instructions: "Spring Boot 4.x, Java 21 Virtual Thread 기반 MSA 프로젝트입니다. 도메인 로직 분리, 예외 처리, JWT/세션 인증 로직의 보안 이슈를 중점적으로 확인해주세요."
+
+chat:
+  auto_reply: true
