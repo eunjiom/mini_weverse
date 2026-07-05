@@ -1,0 +1,58 @@
+# 서비스 추가 시 아래 paths 목록에도 새 모듈 경로를 추가할 것.
+#
+# 주의: 브랜치 보호 규칙(Required status checks)에 이 워크플로우를 필수로 걸어두면,
+# 경로 필터에 안 걸려서 워크플로우 자체가 실행되지 않는 PR은 체크가 pending 상태로 남아
+# merge가 막힐 수 있다. 지금은 서비스가 auth-user-service 하나뿐이라 문제없지만,
+# 서비스가 여러 개가 되면 이 부분을 재검토해야 한다.
+name: CI
+
+on:
+  pull_request:
+    branches:
+      - dev
+    paths:
+      - 'auth-user-service/**'
+      - 'common/**'
+  push:
+    branches:
+      - dev
+    paths:
+      - 'auth-user-service/**'
+      - 'common/**'
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Cache Gradle packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ hashFiles('**/*.gradle*') }}
+          restore-keys: |
+            gradle-
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      # PR 단계: 빠른 피드백을 위해 단위 테스트만 실행
+      - name: Run unit tests
+        if: github.event_name == 'pull_request'
+        run: ./gradlew unitTest
+
+      # dev merge 단계: Testcontainers 통합 테스트까지 포함한 전체 테스트 실행
+      - name: Run full test suite
+        if: github.event_name == 'push'
+        run: ./gradlew build
