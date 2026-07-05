@@ -1,0 +1,24 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: mini-weverse-postgres
+    environment:
+      POSTGRES_DB: mini_weverse
+      POSTGRES_USER: mini_weverse
+      POSTGRES_PASSWORD: mini_weverse
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    container_name: mini-weverse-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+
+volumes:
+  postgres-data:
+  redis-data:
