@@ -1,11 +1,8 @@
 spring:
-  application:
-    name: mini-weverse
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: create-drop
     defer-datasource-initialization: true
-    open-in-view: false
   sql:
     init:
       mode: always

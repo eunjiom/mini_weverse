@@ -7,7 +7,9 @@ public enum AuthUserErrorCode implements ErrorCode {
 
     DUPLICATE_FOLLOW("AUTH_USER_001", "이미 팔로우한 아티스트입니다.", HttpStatus.CONFLICT),
     SELF_FOLLOW_NOT_ALLOWED("AUTH_USER_002", "자기 자신을 팔로우할 수 없습니다.", HttpStatus.BAD_REQUEST),
-    INVALID_ARTIST_PROFILE("AUTH_USER_003", "유효하지 않은 아티스트 프로필입니다.", HttpStatus.BAD_REQUEST);
+    INVALID_ARTIST_PROFILE("AUTH_USER_003", "유효하지 않은 아티스트 프로필입니다.", HttpStatus.BAD_REQUEST),
+    TARGET_NOT_ARTIST("AUTH_USER_004", "대상 유저가 ARTIST 권한이 아닙니다.", HttpStatus.BAD_REQUEST),
+    INVALID_REQUEST("AUTH_USER_005", "요청 값이 올바르지 않습니다.", HttpStatus.BAD_REQUEST);
 
     private final String code;
     private final String message;
