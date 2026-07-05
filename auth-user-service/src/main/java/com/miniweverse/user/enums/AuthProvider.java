@@ -1,4 +1,4 @@
-package com.miniweverse.user;
+package com.miniweverse.user.enums;
 
 public enum AuthProvider {
     LOCAL,

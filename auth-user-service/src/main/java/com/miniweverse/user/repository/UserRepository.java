@@ -1,6 +1,6 @@
 package com.miniweverse.user.repository;
 
-import com.miniweverse.user.User;
+import com.miniweverse.user.entity.User;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 

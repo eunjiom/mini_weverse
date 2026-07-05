@@ -1,7 +1,9 @@
-package com.miniweverse.user;
+package com.miniweverse.user.entity;
 
 import com.miniweverse.common.BaseTimeEntity;
-import com.miniweverse.exception.NotArtistException;
+import com.miniweverse.exception.AuthUserExceptions.NotArtistException;
+import com.miniweverse.user.enums.MembershipStatus;
+import com.miniweverse.user.enums.Role;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;

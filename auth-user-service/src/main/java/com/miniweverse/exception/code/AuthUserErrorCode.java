@@ -1,4 +1,4 @@
-package com.miniweverse.exception;
+package com.miniweverse.exception.code;
 
 import com.miniweverse.common.exception.ErrorCode;
 import org.springframework.http.HttpStatus;

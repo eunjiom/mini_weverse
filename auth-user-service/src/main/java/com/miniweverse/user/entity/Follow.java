@@ -1,8 +1,9 @@
-package com.miniweverse.user;
+package com.miniweverse.user.entity;
 
 import com.miniweverse.common.BaseTimeEntity;
-import com.miniweverse.exception.NotArtistException;
-import com.miniweverse.exception.SelfFollowNotAllowedException;
+import com.miniweverse.exception.AuthUserExceptions.NotArtistException;
+import com.miniweverse.exception.AuthUserExceptions.SelfFollowNotAllowedException;
+import com.miniweverse.user.enums.Role;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;

@@ -1,6 +1,6 @@
 package com.miniweverse.admin.repository;
 
-import com.miniweverse.admin.Admin;
+import com.miniweverse.admin.entity.Admin;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 

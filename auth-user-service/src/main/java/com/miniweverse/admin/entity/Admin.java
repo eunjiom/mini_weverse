@@ -1,7 +1,7 @@
-package com.miniweverse.admin;
+package com.miniweverse.admin.entity;
 
 import com.miniweverse.common.BaseTimeEntity;
-import com.miniweverse.exception.InvalidRequestException;
+import com.miniweverse.exception.AuthUserExceptions.InvalidRequestException;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;

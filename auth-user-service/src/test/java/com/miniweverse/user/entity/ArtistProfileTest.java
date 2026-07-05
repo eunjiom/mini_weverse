@@ -1,9 +1,11 @@
-package com.miniweverse.user;
+package com.miniweverse.user.entity;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.miniweverse.exception.InvalidArtistProfileException;
+import com.miniweverse.exception.AuthUserExceptions.InvalidArtistProfileException;
+import com.miniweverse.user.enums.ArtistCategory;
+import com.miniweverse.user.enums.Role;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
