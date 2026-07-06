@@ -53,4 +53,10 @@ public final class AuthUserExceptions {
             super(AuthUserErrorCode.INVALID_CREDENTIALS);
         }
     }
+
+    public static class InvalidRefreshTokenException extends BusinessException {
+        public InvalidRefreshTokenException() {
+            super(AuthUserErrorCode.INVALID_REFRESH_TOKEN);
+        }
+    }
 }

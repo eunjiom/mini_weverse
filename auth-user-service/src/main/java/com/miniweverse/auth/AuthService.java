@@ -5,9 +5,11 @@ import com.miniweverse.admin.repository.AdminRepository;
 import com.miniweverse.auth.dto.SignupRequest;
 import com.miniweverse.exception.AuthUserExceptions.DuplicateEmailException;
 import com.miniweverse.exception.AuthUserExceptions.InvalidCredentialsException;
+import com.miniweverse.exception.AuthUserExceptions.InvalidRefreshTokenException;
 import com.miniweverse.user.entity.User;
 import com.miniweverse.user.enums.Role;
 import com.miniweverse.user.repository.UserRepository;
+import io.jsonwebtoken.JwtException;
 import java.time.Duration;
 import java.util.Optional;
 import org.springframework.http.ResponseCookie;
@@ -75,11 +77,57 @@ public class AuthService {
                         User.createKakao(resolveEmail(email, providerId), providerId, nickname, Role.FAN)));
     }
 
+    /**
+     * RT는 Redis에 저장된 값과 정확히 일치할 때만 재발급한다.
+     * 불일치(탈취 의심 또는 이미 Rotation된 RT 재사용)면 저장된 RT까지 지우고 재로그인을 요구한다.
+     */
+    public LoginResult.UserLoginResult reissue(String refreshTokenCookieValue) {
+        Long userId = extractUserId(refreshTokenCookieValue);
+
+        String storedToken = refreshTokenRepository.findRefreshToken(userId).orElse(null);
+        if (storedToken == null || !storedToken.equals(refreshTokenCookieValue)) {
+            refreshTokenRepository.delete(userId);
+            throw new InvalidRefreshTokenException();
+        }
+
+        User user = userRepository.findById(userId).orElseThrow(InvalidRefreshTokenException::new);
+        return issueUserLogin(user);
+    }
+
+    public void logoutByRefreshToken(String refreshTokenCookieValue) {
+        try {
+            Long userId = extractUserId(refreshTokenCookieValue);
+            refreshTokenRepository.delete(userId);
+        } catch (InvalidRefreshTokenException ignored) {
+            // 이미 만료/위조된 토큰이어도 로그아웃 자체는 성공 처리한다.
+        }
+    }
+
+    public ResponseCookie expiredRefreshTokenCookie() {
+        return ResponseCookie.from(REFRESH_TOKEN_COOKIE_NAME, "")
+                .httpOnly(true)
+                .path("/")
+                .maxAge(0)
+                .sameSite("Lax")
+                .build();
+    }
+
     LoginResult.UserLoginResult issueUserLogin(User user) {
         String accessToken = jwtTokenProvider.createAccessToken(user.getId(), user.getNickname(), user.getRole());
         String refreshToken = jwtTokenProvider.createRefreshToken(user.getId());
         refreshTokenRepository.save(user.getId(), refreshToken);
         return new LoginResult.UserLoginResult(accessToken, refreshTokenCookie(refreshToken));
+    }
+
+    private Long extractUserId(String refreshTokenCookieValue) {
+        if (refreshTokenCookieValue == null || refreshTokenCookieValue.isBlank()) {
+            throw new InvalidRefreshTokenException();
+        }
+        try {
+            return Long.valueOf(jwtTokenProvider.parseClaims(refreshTokenCookieValue).getSubject());
+        } catch (JwtException | IllegalArgumentException e) {
+            throw new InvalidRefreshTokenException();
+        }
     }
 
     private String resolveEmail(String email, String providerId) {

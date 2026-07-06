@@ -11,7 +11,8 @@ public enum AuthUserErrorCode implements ErrorCode {
     TARGET_NOT_ARTIST("AUTH_USER_004", "대상 유저가 ARTIST 권한이 아닙니다.", HttpStatus.BAD_REQUEST),
     INVALID_REQUEST("AUTH_USER_005", "요청 값이 올바르지 않습니다.", HttpStatus.BAD_REQUEST),
     DUPLICATE_EMAIL("AUTH_USER_006", "이미 가입된 이메일입니다.", HttpStatus.CONFLICT),
-    INVALID_CREDENTIALS("AUTH_USER_007", "이메일 또는 비밀번호가 올바르지 않습니다.", HttpStatus.UNAUTHORIZED);
+    INVALID_CREDENTIALS("AUTH_USER_007", "이메일 또는 비밀번호가 올바르지 않습니다.", HttpStatus.UNAUTHORIZED),
+    INVALID_REFRESH_TOKEN("AUTH_USER_008", "재로그인이 필요합니다.", HttpStatus.UNAUTHORIZED);
 
     private final String code;
     private final String message;
