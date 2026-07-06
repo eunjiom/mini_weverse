@@ -1,8 +1,11 @@
-package com.miniweverse.auth;
+package com.miniweverse.auth.service;
 
 import com.miniweverse.admin.entity.Admin;
 import com.miniweverse.admin.repository.AdminRepository;
 import com.miniweverse.auth.dto.SignupRequest;
+import com.miniweverse.auth.jwt.JwtProperties;
+import com.miniweverse.auth.jwt.JwtTokenProvider;
+import com.miniweverse.auth.repository.RefreshTokenRepository;
 import com.miniweverse.exception.AuthUserExceptions.DuplicateEmailException;
 import com.miniweverse.exception.AuthUserExceptions.InvalidCredentialsException;
 import com.miniweverse.exception.AuthUserExceptions.InvalidRefreshTokenException;
@@ -133,7 +136,7 @@ public class AuthService {
                 .build();
     }
 
-    LoginResult.UserLoginResult issueUserLogin(User user) {
+    public LoginResult.UserLoginResult issueUserLogin(User user) {
         String accessToken = jwtTokenProvider.createAccessToken(user.getId(), user.getNickname(), user.getRole());
         String refreshToken = jwtTokenProvider.createRefreshToken(user.getId());
         refreshTokenRepository.save(user.getId(), refreshToken);

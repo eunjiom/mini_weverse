@@ -1,4 +1,4 @@
-package com.miniweverse.admin;
+package com.miniweverse.admin.seed;
 
 import com.miniweverse.admin.entity.Admin;
 import com.miniweverse.admin.repository.AdminRepository;

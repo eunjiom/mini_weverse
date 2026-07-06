@@ -1,7 +1,9 @@
-package com.miniweverse.auth;
+package com.miniweverse.auth.oauth;
 
 import tools.jackson.databind.ObjectMapper;
 import com.miniweverse.auth.dto.TokenResponse;
+import com.miniweverse.auth.service.AuthService;
+import com.miniweverse.auth.service.LoginResult;
 import com.miniweverse.user.entity.User;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;

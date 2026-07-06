@@ -1,4 +1,4 @@
-package com.miniweverse.auth;
+package com.miniweverse.auth.jwt;
 
 import com.miniweverse.user.enums.Role;
 import io.jsonwebtoken.Claims;

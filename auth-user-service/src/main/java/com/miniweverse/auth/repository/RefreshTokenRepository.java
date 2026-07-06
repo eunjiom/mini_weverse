@@ -1,5 +1,6 @@
-package com.miniweverse.auth;
+package com.miniweverse.auth.repository;
 
+import com.miniweverse.auth.jwt.JwtProperties;
 import java.time.Duration;
 import java.util.Optional;
 import org.springframework.data.redis.core.HashOperations;

@@ -1,4 +1,4 @@
-package com.miniweverse.auth;
+package com.miniweverse.auth.jwt;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;

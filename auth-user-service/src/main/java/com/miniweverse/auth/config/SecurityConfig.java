@@ -1,5 +1,8 @@
-package com.miniweverse.auth;
+package com.miniweverse.auth.config;
 
+import com.miniweverse.auth.jwt.JwtAuthenticationFilter;
+import com.miniweverse.auth.jwt.JwtTokenProvider;
+import com.miniweverse.auth.oauth.KakaoLoginSuccessHandler;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;

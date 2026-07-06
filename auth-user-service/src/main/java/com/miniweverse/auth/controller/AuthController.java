@@ -1,9 +1,11 @@
-package com.miniweverse.auth;
+package com.miniweverse.auth.controller;
 
 import com.miniweverse.auth.dto.LoginRequest;
 import com.miniweverse.auth.dto.SignupRequest;
 import com.miniweverse.auth.dto.SignupResponse;
 import com.miniweverse.auth.dto.TokenResponse;
+import com.miniweverse.auth.service.AuthService;
+import com.miniweverse.auth.service.LoginResult;
 import com.miniweverse.user.entity.User;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;

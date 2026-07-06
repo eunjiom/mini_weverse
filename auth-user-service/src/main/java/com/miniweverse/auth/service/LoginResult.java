@@ -1,4 +1,4 @@
-package com.miniweverse.auth;
+package com.miniweverse.auth.service;
 
 import com.miniweverse.admin.entity.Admin;
 import org.springframework.http.ResponseCookie;

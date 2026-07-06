@@ -1,4 +1,4 @@
-package com.miniweverse.auth;
+package com.miniweverse.auth.config;
 
 import org.springframework.context.annotation.Configuration;
 import org.springframework.session.data.redis.config.annotation.web.http.EnableRedisHttpSession;
