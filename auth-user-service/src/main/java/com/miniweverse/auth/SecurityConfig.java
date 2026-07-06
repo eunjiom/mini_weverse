@@ -11,6 +11,7 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 
 /**
  * /admin/** 는 세션 기반(1번), 그 외 전부는 JWT 기반(2번)으로 필터 체인을 분리한다.
@@ -35,6 +36,10 @@ public class SecurityConfig {
         http
                 .securityMatcher("/admin/**")
                 .csrf(AbstractHttpConfigurer::disable)
+                // 최신 Spring Security 기본 SecurityContextRepository는 세션에서 자동으로 복원해주지 않아서 명시한다.
+                // AuthController.establishAdminSession()이 로그인 시 이 저장소로 세션에 SecurityContext를 저장해둔다.
+                .securityContext(securityContext ->
+                        securityContext.securityContextRepository(new HttpSessionSecurityContextRepository()))
                 .authorizeHttpRequests(auth -> auth.anyRequest().hasRole("ADMIN"));
         return http.build();
     }
@@ -47,7 +52,7 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/signup", "/login", "/oauth2/**", "/login/oauth2/**").permitAll()
+                        .requestMatchers("/signup", "/login", "/error", "/oauth2/**", "/login/oauth2/**").permitAll()
                         .anyRequest().authenticated())
                 .exceptionHandling(ex -> ex.authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
                 .oauth2Login(oauth2 -> oauth2.successHandler(kakaoLoginSuccessHandler))
