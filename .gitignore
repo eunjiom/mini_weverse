@@ -1,8 +1,7 @@
 HELP.md
 .gradle
 build/
-docs/DECISIONS.md
-docs/readme-temporary.md
+docs/
 **/keys/*.pem
 !gradle/wrapper/gradle-wrapper.jar
 !**/src/main/**/build/
