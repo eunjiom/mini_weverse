@@ -1,18 +1,17 @@
 package com.miniweverse.auth.config;
 
+import com.miniweverse.auth.jwt.JwtAuthenticationEntryPoint;
 import com.miniweverse.auth.jwt.JwtAuthenticationFilter;
 import com.miniweverse.auth.jwt.JwtTokenProvider;
 import com.miniweverse.auth.oauth.KakaoLoginSuccessHandler;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
-import org.springframework.http.HttpStatus;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
@@ -27,10 +26,16 @@ import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
     private final KakaoLoginSuccessHandler kakaoLoginSuccessHandler;
 
-    public SecurityConfig(JwtTokenProvider jwtTokenProvider, KakaoLoginSuccessHandler kakaoLoginSuccessHandler) {
+    public SecurityConfig(
+            JwtTokenProvider jwtTokenProvider,
+            JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint,
+            KakaoLoginSuccessHandler kakaoLoginSuccessHandler
+    ) {
         this.jwtAuthenticationFilter = new JwtAuthenticationFilter(jwtTokenProvider);
+        this.jwtAuthenticationEntryPoint = jwtAuthenticationEntryPoint;
         this.kakaoLoginSuccessHandler = kakaoLoginSuccessHandler;
     }
 
@@ -59,7 +64,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/signup", "/login", "/reissue", "/logout", "/error", "/oauth2/**", "/login/oauth2/**").permitAll()
                         .anyRequest().authenticated())
-                .exceptionHandling(ex -> ex.authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
+                .exceptionHandling(ex -> ex.authenticationEntryPoint(jwtAuthenticationEntryPoint))
                 .oauth2Login(oauth2 -> oauth2.successHandler(kakaoLoginSuccessHandler))
                 // 기본 LogoutFilter가 POST /logout을 가로채 리다이렉트시키는 걸 막고, AuthController.logout()만 쓴다.
                 .logout(AbstractHttpConfigurer::disable)
