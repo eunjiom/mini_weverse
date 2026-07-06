@@ -1,6 +1,10 @@
 spring:
   application:
     name: mini-weverse
+  datasource:
+    url: jdbc:postgresql://localhost:5432/mini_weverse
+    username: mini_weverse
+    password: mini_weverse
   jpa:
     hibernate:
       ddl-auto: update
@@ -12,7 +16,7 @@ spring:
   data:
     redis:
       host: localhost
-      port: 6379
+      port: 6380
 
 jwt:
   private-key-path: keys/private.pem

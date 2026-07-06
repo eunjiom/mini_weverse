@@ -41,4 +41,16 @@ public final class AuthUserExceptions {
             super(AuthUserErrorCode.INVALID_REQUEST, message);
         }
     }
+
+    public static class DuplicateEmailException extends BusinessException {
+        public DuplicateEmailException() {
+            super(AuthUserErrorCode.DUPLICATE_EMAIL);
+        }
+    }
+
+    public static class InvalidCredentialsException extends BusinessException {
+        public InvalidCredentialsException() {
+            super(AuthUserErrorCode.INVALID_CREDENTIALS);
+        }
+    }
 }
