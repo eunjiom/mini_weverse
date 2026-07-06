@@ -1,7 +1,9 @@
 HELP.md
 .gradle
 build/
-docs/DECISIONS.md
+docs/
+**/keys/*.pem
+application-local.yml
 !gradle/wrapper/gradle-wrapper.jar
 !**/src/main/**/build/
 !**/src/test/**/build/

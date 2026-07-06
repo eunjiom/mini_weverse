@@ -1,4 +1,4 @@
-package com.miniweverse.exception;
+package com.miniweverse.exception.handler;
 
 import com.miniweverse.common.exception.BusinessException;
 import com.miniweverse.common.exception.ErrorCode;

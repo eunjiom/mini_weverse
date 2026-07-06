@@ -1,0 +1,103 @@
+package com.miniweverse.user.entity;
+
+import com.miniweverse.common.BaseTimeEntity;
+import com.miniweverse.exception.AuthUserExceptions.InvalidArtistProfileException;
+import com.miniweverse.user.enums.ArtistCategory;
+import com.miniweverse.user.enums.Role;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToOne;
+import jakarta.persistence.Table;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+
+@Entity
+@Table(name = "artist_profiles")
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+public class ArtistProfile extends BaseTimeEntity {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false, unique = true)
+    private User user;
+
+    @Column(nullable = false)
+    private String channelName;
+
+    private String introduction;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private ArtistCategory category;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "group_id")
+    private ArtistProfile group;
+
+    private String profileImageUrl;
+
+    private ArtistProfile(
+            User user,
+            String channelName,
+            String introduction,
+            ArtistCategory category,
+            ArtistProfile group,
+            String profileImageUrl
+    ) {
+        this.user = user;
+        this.channelName = channelName;
+        this.introduction = introduction;
+        this.category = category;
+        this.group = group;
+        this.profileImageUrl = profileImageUrl;
+    }
+
+    public static ArtistProfile create(
+            User user,
+            String channelName,
+            String introduction,
+            ArtistCategory category,
+            ArtistProfile group,
+            String profileImageUrl
+    ) {
+        if (user == null) {
+            throw new InvalidArtistProfileException("유저 정보가 필요합니다.");
+        }
+        if (category == null) {
+            throw new InvalidArtistProfileException("카테고리는 필수입니다.");
+        }
+        if (user.getRole() != Role.ARTIST) {
+            throw new InvalidArtistProfileException("ARTIST 권한을 가진 유저만 아티스트 프로필을 생성할 수 있습니다.");
+        }
+        validateGroup(category, group);
+        return new ArtistProfile(user, channelName, introduction, category, group, profileImageUrl);
+    }
+
+    private static void validateGroup(ArtistCategory category, ArtistProfile group) {
+        if (category == ArtistCategory.MEMBER) {
+            if (group == null) {
+                throw new InvalidArtistProfileException("MEMBER는 소속 그룹이 필요합니다.");
+            }
+            if (group.getCategory() != ArtistCategory.GROUP) {
+                throw new InvalidArtistProfileException("소속 그룹은 GROUP 카테고리여야 합니다.");
+            }
+            return;
+        }
+        if (group != null) {
+            throw new InvalidArtistProfileException("SOLO/GROUP은 소속 그룹을 가질 수 없습니다.");
+        }
+    }
+}

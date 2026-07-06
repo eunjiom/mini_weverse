@@ -1,8 +1,9 @@
-package com.miniweverse.exception;
+package com.miniweverse.exception.handler;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.miniweverse.common.response.ApiResponse;
+import com.miniweverse.exception.AuthUserExceptions.DuplicateFollowException;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.MethodParameter;
