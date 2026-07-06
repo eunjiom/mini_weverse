@@ -73,6 +73,12 @@ public class ArtistProfile extends BaseTimeEntity {
             ArtistProfile group,
             String profileImageUrl
     ) {
+        if (user == null) {
+            throw new InvalidArtistProfileException("유저 정보가 필요합니다.");
+        }
+        if (category == null) {
+            throw new InvalidArtistProfileException("카테고리는 필수입니다.");
+        }
         if (user.getRole() != Role.ARTIST) {
             throw new InvalidArtistProfileException("ARTIST 권한을 가진 유저만 아티스트 프로필을 생성할 수 있습니다.");
         }

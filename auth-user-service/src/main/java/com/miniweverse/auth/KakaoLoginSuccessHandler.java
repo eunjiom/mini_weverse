@@ -36,7 +36,11 @@ public class KakaoLoginSuccessHandler implements AuthenticationSuccessHandler {
             Authentication authentication
     ) throws IOException {
         OAuth2User oAuth2User = (OAuth2User) authentication.getPrincipal();
-        String providerId = String.valueOf(oAuth2User.getAttributes().get("id"));
+        Object rawId = oAuth2User.getAttributes().get("id");
+        if (rawId == null) {
+            throw new IllegalStateException("카카오 응답에 사용자 id가 없습니다.");
+        }
+        String providerId = String.valueOf(rawId);
 
         @SuppressWarnings("unchecked")
         Map<String, Object> kakaoAccount = (Map<String, Object>) oAuth2User.getAttributes().get("kakao_account");
@@ -44,13 +48,15 @@ public class KakaoLoginSuccessHandler implements AuthenticationSuccessHandler {
         Map<String, Object> profile = kakaoAccount != null
                 ? (Map<String, Object>) kakaoAccount.get("profile")
                 : null;
-        String nickname = profile != null ? String.valueOf(profile.get("nickname")) : "카카오유저";
+        Object rawNickname = profile != null ? profile.get("nickname") : null;
+        String nickname = rawNickname != null ? String.valueOf(rawNickname) : "카카오유저";
         String email = kakaoAccount != null ? (String) kakaoAccount.get("email") : null;
 
         User user = authService.findOrCreateKakaoUser(providerId, email, nickname);
         LoginResult.UserLoginResult result = authService.issueUserLogin(user);
 
         response.addHeader(HttpHeaders.SET_COOKIE, result.refreshTokenCookie().toString());
+        response.addHeader(HttpHeaders.AUTHORIZATION, "Bearer " + result.accessToken());
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
         response.setCharacterEncoding("UTF-8");
         response.getWriter().write(objectMapper.writeValueAsString(new TokenResponse(result.accessToken())));

@@ -30,7 +30,8 @@ public class AdminSeeder implements ApplicationRunner {
 
     @Override
     public void run(ApplicationArguments args) {
-        if (properties.seedEmail() == null || properties.seedEmail().isBlank()) {
+        if (properties.seedEmail() == null || properties.seedEmail().isBlank()
+                || properties.seedPassword() == null || properties.seedPassword().isBlank()) {
             return;
         }
         if (adminRepository.findByEmail(properties.seedEmail()).isPresent()) {

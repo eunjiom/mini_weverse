@@ -1,6 +1,7 @@
 package com.miniweverse.user.entity;
 
 import com.miniweverse.common.BaseTimeEntity;
+import com.miniweverse.exception.AuthUserExceptions.InvalidRequestException;
 import com.miniweverse.exception.AuthUserExceptions.NotArtistException;
 import com.miniweverse.exception.AuthUserExceptions.SelfFollowNotAllowedException;
 import com.miniweverse.user.enums.Role;
@@ -48,6 +49,9 @@ public class Follow extends BaseTimeEntity {
     }
 
     public static Follow create(User follower, User artist) {
+        if (follower == null || artist == null) {
+            throw new InvalidRequestException("follower와 artist는 필수입니다.");
+        }
         boolean isSelfFollow = follower == artist
                 || (follower.getId() != null && Objects.equals(follower.getId(), artist.getId()));
         if (isSelfFollow) {

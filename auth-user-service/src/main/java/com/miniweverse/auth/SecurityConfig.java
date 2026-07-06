@@ -12,6 +12,7 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
+import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 
 /**
  * /admin/** 는 세션 기반(1번), 그 외 전부는 JWT 기반(2번)으로 필터 체인을 분리한다.
@@ -35,7 +36,8 @@ public class SecurityConfig {
     public SecurityFilterChain adminFilterChain(HttpSecurity http) throws Exception {
         http
                 .securityMatcher("/admin/**")
-                .csrf(AbstractHttpConfigurer::disable)
+                // 세션(쿠키) 기반 인증이라 CSRF에 노출될 수 있어, JWT 체인과 달리 여기는 CSRF를 켠다.
+                .csrf(csrf -> csrf.csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse()))
                 // 최신 Spring Security 기본 SecurityContextRepository는 세션에서 자동으로 복원해주지 않아서 명시한다.
                 // AuthController.establishAdminSession()이 로그인 시 이 저장소로 세션에 SecurityContext를 저장해둔다.
                 .securityContext(securityContext ->

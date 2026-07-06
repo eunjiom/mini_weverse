@@ -23,3 +23,6 @@ jwt:
   public-key-path: keys/public.pem
   access-token-validity: 1800000
   refresh-token-validity: 1209600000
+
+cookie:
+  secure: true

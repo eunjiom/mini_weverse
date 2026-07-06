@@ -21,6 +21,10 @@ import org.springframework.stereotype.Component;
 @Component
 public class JwtTokenProvider {
 
+    public static final String CLAIM_TOKEN_TYPE = "type";
+    public static final String TOKEN_TYPE_ACCESS = "access";
+    public static final String TOKEN_TYPE_REFRESH = "refresh";
+
     private final JwtProperties properties;
     private final PrivateKey privateKey;
     private final PublicKey publicKey;
@@ -35,6 +39,7 @@ public class JwtTokenProvider {
         Date now = new Date();
         return Jwts.builder()
                 .subject(String.valueOf(userId))
+                .claim(CLAIM_TOKEN_TYPE, TOKEN_TYPE_ACCESS)
                 .claim("nickname", nickname)
                 .claim("role", role.name())
                 .issuedAt(now)
@@ -47,6 +52,7 @@ public class JwtTokenProvider {
         Date now = new Date();
         return Jwts.builder()
                 .subject(String.valueOf(userId))
+                .claim(CLAIM_TOKEN_TYPE, TOKEN_TYPE_REFRESH)
                 .issuedAt(now)
                 .expiration(new Date(now.getTime() + properties.refreshTokenValidity()))
                 .signWith(privateKey, Jwts.SIG.RS256)

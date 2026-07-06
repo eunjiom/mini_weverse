@@ -49,6 +49,7 @@ public class User extends BaseTimeEntity {
     @Column(nullable = false)
     private AuthProvider provider;
 
+    // 유니크 제약은 schema.sql의 uk_users_provider_id(부분 인덱스)로 건다 — email과 동일한 방식.
     private String providerId;
 
     private LocalDateTime deletedAt;
@@ -63,6 +64,7 @@ public class User extends BaseTimeEntity {
     }
 
     public static User createLocal(String email, String password, String nickname, Role role) {
+        validateEmailAndNickname(email, nickname);
         if (password == null || password.isBlank()) {
             throw new InvalidRequestException("로컬 가입은 비밀번호가 필요합니다.");
         }
@@ -70,10 +72,20 @@ public class User extends BaseTimeEntity {
     }
 
     public static User createKakao(String email, String providerId, String nickname, Role role) {
+        validateEmailAndNickname(email, nickname);
         if (providerId == null || providerId.isBlank()) {
             throw new InvalidRequestException("카카오 가입은 providerId가 필요합니다.");
         }
         return new User(email, null, nickname, role, AuthProvider.KAKAO, providerId);
+    }
+
+    private static void validateEmailAndNickname(String email, String nickname) {
+        if (email == null || email.isBlank()) {
+            throw new InvalidRequestException("이메일은 필수입니다.");
+        }
+        if (nickname == null || nickname.isBlank()) {
+            throw new InvalidRequestException("닉네임은 필수입니다.");
+        }
     }
 
     public void delete() {

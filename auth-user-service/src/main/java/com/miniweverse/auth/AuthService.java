@@ -7,11 +7,14 @@ import com.miniweverse.exception.AuthUserExceptions.DuplicateEmailException;
 import com.miniweverse.exception.AuthUserExceptions.InvalidCredentialsException;
 import com.miniweverse.exception.AuthUserExceptions.InvalidRefreshTokenException;
 import com.miniweverse.user.entity.User;
+import com.miniweverse.user.enums.AuthProvider;
 import com.miniweverse.user.enums.Role;
 import com.miniweverse.user.repository.UserRepository;
 import io.jsonwebtoken.JwtException;
 import java.time.Duration;
 import java.util.Optional;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.ResponseCookie;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -27,6 +30,7 @@ public class AuthService {
     private final JwtTokenProvider jwtTokenProvider;
     private final RefreshTokenRepository refreshTokenRepository;
     private final JwtProperties jwtProperties;
+    private final boolean cookieSecure;
 
     public AuthService(
             UserRepository userRepository,
@@ -34,7 +38,8 @@ public class AuthService {
             PasswordEncoder passwordEncoder,
             JwtTokenProvider jwtTokenProvider,
             RefreshTokenRepository refreshTokenRepository,
-            JwtProperties jwtProperties
+            JwtProperties jwtProperties,
+            @Value("${cookie.secure:true}") boolean cookieSecure
     ) {
         this.userRepository = userRepository;
         this.adminRepository = adminRepository;
@@ -42,6 +47,7 @@ public class AuthService {
         this.jwtTokenProvider = jwtTokenProvider;
         this.refreshTokenRepository = refreshTokenRepository;
         this.jwtProperties = jwtProperties;
+        this.cookieSecure = cookieSecure;
     }
 
     public User signup(SignupRequest request) {
@@ -54,7 +60,12 @@ public class AuthService {
                 request.nickname(),
                 Role.FAN
         );
-        return userRepository.save(user);
+        try {
+            return userRepository.save(user);
+        } catch (DataIntegrityViolationException e) {
+            // 동시 요청으로 findByEmail 체크를 통과한 뒤 DB 유니크 제약에서 걸린 경우.
+            throw new DuplicateEmailException();
+        }
     }
 
     public LoginResult login(String email, String rawPassword) {
@@ -72,9 +83,18 @@ public class AuthService {
     }
 
     public User findOrCreateKakaoUser(String providerId, String email, String nickname) {
-        return userRepository.findByProviderId(providerId)
-                .orElseGet(() -> userRepository.save(
-                        User.createKakao(resolveEmail(email, providerId), providerId, nickname, Role.FAN)));
+        Optional<User> existing = userRepository.findByProviderAndProviderId(AuthProvider.KAKAO, providerId);
+        if (existing.isPresent()) {
+            return existing.get();
+        }
+        User newUser = User.createKakao(resolveEmail(email, providerId), providerId, nickname, Role.FAN);
+        try {
+            return userRepository.save(newUser);
+        } catch (DataIntegrityViolationException e) {
+            // 동시 카카오 로그인으로 다른 요청이 먼저 만든 경우, 그 유저를 재사용한다.
+            return userRepository.findByProviderAndProviderId(AuthProvider.KAKAO, providerId)
+                    .orElseThrow(() -> e);
+        }
     }
 
     /**
@@ -106,6 +126,7 @@ public class AuthService {
     public ResponseCookie expiredRefreshTokenCookie() {
         return ResponseCookie.from(REFRESH_TOKEN_COOKIE_NAME, "")
                 .httpOnly(true)
+                .secure(cookieSecure)
                 .path("/")
                 .maxAge(0)
                 .sameSite("Lax")
@@ -124,7 +145,11 @@ public class AuthService {
             throw new InvalidRefreshTokenException();
         }
         try {
-            return Long.valueOf(jwtTokenProvider.parseClaims(refreshTokenCookieValue).getSubject());
+            var claims = jwtTokenProvider.parseClaims(refreshTokenCookieValue);
+            if (!JwtTokenProvider.TOKEN_TYPE_REFRESH.equals(claims.get(JwtTokenProvider.CLAIM_TOKEN_TYPE, String.class))) {
+                throw new InvalidRefreshTokenException();
+            }
+            return Long.valueOf(claims.getSubject());
         } catch (JwtException | IllegalArgumentException e) {
             throw new InvalidRefreshTokenException();
         }
@@ -140,6 +165,7 @@ public class AuthService {
     private ResponseCookie refreshTokenCookie(String refreshToken) {
         return ResponseCookie.from(REFRESH_TOKEN_COOKIE_NAME, refreshToken)
                 .httpOnly(true)
+                .secure(cookieSecure)
                 .path("/")
                 .maxAge(Duration.ofMillis(jwtProperties.refreshTokenValidity()))
                 .sameSite("Lax")
@@ -147,7 +173,7 @@ public class AuthService {
     }
 
     private void validatePassword(String rawPassword, String encodedPassword) {
-        if (!passwordEncoder.matches(rawPassword, encodedPassword)) {
+        if (encodedPassword == null || !passwordEncoder.matches(rawPassword, encodedPassword)) {
             throw new InvalidCredentialsException();
         }
     }

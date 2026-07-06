@@ -1,7 +1,9 @@
 package com.miniweverse.user.entity;
 
 import com.miniweverse.common.BaseTimeEntity;
+import com.miniweverse.exception.AuthUserExceptions.InvalidRequestException;
 import com.miniweverse.exception.AuthUserExceptions.NotArtistException;
+import java.util.Objects;
 import com.miniweverse.user.enums.MembershipStatus;
 import com.miniweverse.user.enums.Role;
 import jakarta.persistence.Column;
@@ -63,6 +65,14 @@ public class MembershipCache extends BaseTimeEntity {
     }
 
     public static MembershipCache create(User subscriber, User artist, MembershipStatus status, LocalDateTime expiresAt) {
+        if (subscriber == null || artist == null) {
+            throw new InvalidRequestException("subscriber와 artist는 필수입니다.");
+        }
+        boolean isSelfSubscription = subscriber == artist
+                || (subscriber.getId() != null && Objects.equals(subscriber.getId(), artist.getId()));
+        if (isSelfSubscription) {
+            throw new InvalidRequestException("자기 자신을 구독할 수 없습니다.");
+        }
         if (artist.getRole() != Role.ARTIST) {
             throw new NotArtistException();
         }

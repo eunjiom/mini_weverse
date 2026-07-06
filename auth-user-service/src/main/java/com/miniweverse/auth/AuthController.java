@@ -94,6 +94,7 @@ public class AuthController {
         SecurityContextHolder.setContext(context);
 
         HttpSession session = request.getSession(true);
+        request.changeSessionId();
         session.setAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY, context);
     }
 }
