@@ -5,4 +5,4 @@ plugins {
 rootProject.name = 'mini-weverse'
 
 include 'common'
-include 'auth-user-service'
+include 'community-service'
