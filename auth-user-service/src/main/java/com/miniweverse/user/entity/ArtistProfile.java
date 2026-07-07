@@ -16,12 +16,19 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
+import java.time.LocalDateTime;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.SQLRestriction;
 
+/**
+ * deletedAt은 User의 탈퇴와 별개다 — 아티스트 활동 중단/채널 폐쇄처럼 User 계정은 유지된 채
+ * 아티스트 프로필만 삭제되는 경우가 있을 수 있어서 독립적인 soft delete 상태를 둔다.
+ */
 @Entity
 @Table(name = "artist_profiles")
+@SQLRestriction("deleted_at IS NULL")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class ArtistProfile extends BaseTimeEntity {
@@ -48,6 +55,8 @@ public class ArtistProfile extends BaseTimeEntity {
     private ArtistProfile group;
 
     private String profileImageUrl;
+
+    private LocalDateTime deletedAt;
 
     private ArtistProfile(
             User user,
@@ -99,5 +108,13 @@ public class ArtistProfile extends BaseTimeEntity {
         if (group != null) {
             throw new InvalidArtistProfileException("SOLO/GROUP은 소속 그룹을 가질 수 없습니다.");
         }
+    }
+
+    public void delete() {
+        this.deletedAt = LocalDateTime.now();
+    }
+
+    public boolean isDeleted() {
+        return deletedAt != null;
     }
 }
