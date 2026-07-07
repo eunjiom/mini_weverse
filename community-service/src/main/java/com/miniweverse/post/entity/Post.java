@@ -47,7 +47,7 @@ public class Post extends BaseTimeEntity {
     @Column(nullable = false)
     private BoardType boardType;
 
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "TEXT")
     private String content;
 
     private Post(User author, ArtistProfile artistProfile, BoardType boardType, String content) {

@@ -49,6 +49,7 @@ public class PostService {
         return postRepository.save(Post.create(author, artistProfile, boardType, content));
     }
 
+    @Transactional(readOnly = true)
     public List<Post> getByArtistAndBoardType(Long artistUserId, BoardType boardType) {
         User artistUser = userRepository.findById(artistUserId)
                 .orElseThrow(() -> new InvalidRequestException("아티스트 정보를 찾을 수 없습니다."));

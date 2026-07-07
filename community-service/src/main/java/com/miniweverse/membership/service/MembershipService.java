@@ -12,6 +12,7 @@ import com.miniweverse.user.repository.UserRepository;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -45,14 +46,28 @@ public class MembershipService {
             throw new InvalidRequestException("그룹 멤버는 구독할 수 없습니다. 그룹 또는 솔로 아티스트만 구독 가능합니다.");
         }
 
+        // findBySubscriberAndArtist는 PESSIMISTIC_WRITE 락을 걸기 때문에, 동시에 들어온
+        // 같은 (subscriber, artist) 요청은 여기서 순서대로 직렬화된다.
         LocalDateTime now = LocalDateTime.now();
         return membershipCacheRepository.findBySubscriberAndArtist(subscriber, artist)
                 .map(membership -> {
                     membership.renew(now);
                     return membership;
                 })
-                .orElseGet(() -> membershipCacheRepository.save(
-                        MembershipCache.create(subscriber, artist, MembershipStatus.ACTIVE, now.plusMonths(1))));
+                .orElseGet(() -> createOrRenew(subscriber, artist, now));
+    }
+
+    private MembershipCache createOrRenew(User subscriber, User artist, LocalDateTime now) {
+        try {
+            return membershipCacheRepository.save(
+                    MembershipCache.create(subscriber, artist, MembershipStatus.ACTIVE, now.plusMonths(1)));
+        } catch (DataIntegrityViolationException e) {
+            // 동시 요청으로 최초 구독 확인(락을 걸 row가 아직 없던 시점)을 통과한 뒤 유니크 제약에서 걸린 경우.
+            // 이미 flush가 실패해서 현재 트랜잭션의 영속성 컨텍스트는 더 이상 안전하게 쓸 수 없으므로,
+            // 같은 트랜잭션에서 재조회/갱신을 시도하지 않고 깨끗하게 실패시킨다. 클라이언트가 재시도하면
+            // 이번엔 이미 생성된 row를 findBySubscriberAndArtist가 락을 걸고 정상적으로 갱신한다.
+            throw new InvalidRequestException("이미 구독 처리 중입니다. 잠시 후 다시 시도해주세요.");
+        }
     }
 
     @Transactional
