@@ -37,8 +37,9 @@ public class ArtistProfile extends BaseTimeEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    // 유니크 제약은 schema.sql의 uk_artist_profiles_user_id(부분 인덱스)로 건다 — soft delete된 프로필은 제외해야 재생성 가능.
     @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false, unique = true)
+    @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
     @Column(nullable = false)
