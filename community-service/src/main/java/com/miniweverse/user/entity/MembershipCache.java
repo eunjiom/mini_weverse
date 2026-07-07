@@ -24,8 +24,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 /**
- * Membership 서비스가 소유한 구독 상태의 읽기 전용 캐시.
- * 실제 결제/갱신 로직(Kafka 이벤트 수신 등)은 이후 PR에서 다룬다.
+ * 아티스트 멤버십(구독) 상태. 결제 연동 없이 이 서비스가 구독/갱신/취소/만료를 직접 소유한다.
  */
 @Entity
 @Table(
@@ -57,6 +56,8 @@ public class MembershipCache extends BaseTimeEntity {
 
     private LocalDateTime expiresAt;
 
+    private LocalDateTime cancelledAt;
+
     private MembershipCache(User subscriber, User artist, MembershipStatus status, LocalDateTime expiresAt) {
         this.subscriber = subscriber;
         this.artist = artist;
@@ -77,5 +78,27 @@ public class MembershipCache extends BaseTimeEntity {
             throw new NotArtistException();
         }
         return new MembershipCache(subscriber, artist, status, expiresAt);
+    }
+
+    /**
+     * 구독 갱신. 이미 만료됐으면 갱신 시점부터 1개월, 아직 유효(ACTIVE)하면 기존 만료일에 1개월을 이어붙인다.
+     * 재구독하면 취소 여부는 무효화된다.
+     */
+    public void renew(LocalDateTime now) {
+        boolean alreadyExpired = status == MembershipStatus.EXPIRED || expiresAt == null || expiresAt.isBefore(now);
+        this.expiresAt = alreadyExpired ? now.plusMonths(1) : expiresAt.plusMonths(1);
+        this.status = MembershipStatus.ACTIVE;
+        this.cancelledAt = null;
+    }
+
+    public void expire() {
+        this.status = MembershipStatus.EXPIRED;
+    }
+
+    public void cancel() {
+        if (status != MembershipStatus.ACTIVE) {
+            throw new InvalidRequestException("활성 구독만 취소할 수 있습니다.");
+        }
+        this.cancelledAt = LocalDateTime.now();
     }
 }
