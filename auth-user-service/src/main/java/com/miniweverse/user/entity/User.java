@@ -90,6 +90,7 @@ public class User extends BaseTimeEntity {
 
     public void delete() {
         this.deletedAt = LocalDateTime.now();
+        this.email = "deleted_" + id + "@withdrawn.local";
     }
 
     public boolean isDeleted() {
