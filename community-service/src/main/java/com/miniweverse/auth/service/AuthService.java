@@ -1,7 +1,5 @@
 package com.miniweverse.auth.service;
 
-import com.miniweverse.admin.entity.Admin;
-import com.miniweverse.admin.repository.AdminRepository;
 import com.miniweverse.auth.dto.SignupRequest;
 import com.miniweverse.auth.jwt.JwtProperties;
 import com.miniweverse.auth.jwt.JwtTokenProvider;
@@ -28,7 +26,6 @@ public class AuthService {
     private static final String REFRESH_TOKEN_COOKIE_NAME = "refreshToken";
 
     private final UserRepository userRepository;
-    private final AdminRepository adminRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
     private final RefreshTokenRepository refreshTokenRepository;
@@ -37,7 +34,6 @@ public class AuthService {
 
     public AuthService(
             UserRepository userRepository,
-            AdminRepository adminRepository,
             PasswordEncoder passwordEncoder,
             JwtTokenProvider jwtTokenProvider,
             RefreshTokenRepository refreshTokenRepository,
@@ -45,7 +41,6 @@ public class AuthService {
             @Value("${cookie.secure:true}") boolean cookieSecure
     ) {
         this.userRepository = userRepository;
-        this.adminRepository = adminRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtTokenProvider = jwtTokenProvider;
         this.refreshTokenRepository = refreshTokenRepository;
@@ -72,17 +67,14 @@ public class AuthService {
     }
 
     public LoginResult login(String email, String rawPassword) {
-        Optional<User> userOpt = userRepository.findByEmail(email);
-        if (userOpt.isPresent()) {
-            User user = userOpt.get();
-            validatePassword(rawPassword, user.getPassword());
-            return issueUserLogin(user);
-        }
-
-        Admin admin = adminRepository.findByEmail(email)
+        User user = userRepository.findByEmail(email)
                 .orElseThrow(InvalidCredentialsException::new);
-        validatePassword(rawPassword, admin.getPassword());
-        return new LoginResult.AdminLoginResult(admin);
+        validatePassword(rawPassword, user.getPassword());
+
+        if (user.getRole() == Role.ADMIN) {
+            return new LoginResult.AdminLoginResult(user);
+        }
+        return issueUserLogin(user);
     }
 
     public User findOrCreateKakaoUser(String providerId, String email, String nickname) {

@@ -89,7 +89,7 @@ public class AuthController {
 
     private void establishAdminSession(LoginResult.AdminLoginResult adminLogin, HttpServletRequest request) {
         Authentication authentication = new UsernamePasswordAuthenticationToken(
-                adminLogin.admin().getEmail(), null, List.of(new SimpleGrantedAuthority("ROLE_ADMIN")));
+                adminLogin.user().getEmail(), null, List.of(new SimpleGrantedAuthority("ROLE_ADMIN")));
 
         SecurityContext context = SecurityContextHolder.createEmptyContext();
         context.setAuthentication(authentication);
