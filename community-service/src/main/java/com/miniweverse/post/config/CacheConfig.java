@@ -33,6 +33,10 @@ public class CacheConfig {
 
         return RedisCacheManager.builder(connectionFactory)
                 .withCacheConfiguration(POSTS_CACHE, postsCacheConfig)
+                // 트랜잭션 커밋 후에만 put/evict가 반영되도록 한다 (커밋 전 evict로 인한 stale 캐시 재생성 방지).
+                .transactionAware()
+                // 설정 안 된 캐시 이름을 쓰면 기본 직렬화(JDK)로 조용히 생성되는 대신 바로 실패시킨다.
+                .disableCreateOnMissingCache()
                 .build();
     }
 }
