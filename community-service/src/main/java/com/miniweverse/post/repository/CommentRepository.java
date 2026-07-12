@@ -4,6 +4,7 @@ import com.miniweverse.post.entity.Comment;
 import com.miniweverse.post.entity.Post;
 import com.miniweverse.user.entity.User;
 import java.util.List;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -13,6 +14,7 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
     /**
      * open-in-view: false라 컨트롤러에서 지연 로딩 필드(author, post)에 접근하면
      * LazyInitializationException이 난다. 응답 DTO 매핑에 필요한 연관관계를 조회 시점에 미리 로딩한다.
+     * 정렬은 쿼리에 고정(createdAt ASC)하고, Pageable은 페이지/크기(LIMIT/OFFSET)만 적용한다.
      */
     @Query("""
             SELECT c FROM Comment c
@@ -21,7 +23,7 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
             WHERE c.post = :post
             ORDER BY c.createdAt ASC
             """)
-    List<Comment> findByPostOrderByCreatedAtAsc(@Param("post") Post post);
+    List<Comment> findByPostOrderByCreatedAtAsc(@Param("post") Post post, Pageable pageable);
 
     @Query("""
             SELECT c FROM Comment c

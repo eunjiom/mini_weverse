@@ -10,6 +10,7 @@ import com.miniweverse.post.repository.PostRepository;
 import com.miniweverse.user.entity.User;
 import com.miniweverse.user.repository.UserRepository;
 import java.util.List;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -46,13 +47,13 @@ public class CommentService {
     }
 
     @Transactional(readOnly = true)
-    public List<Comment> getByPost(Long viewerId, Long postId) {
+    public List<Comment> getByPost(Long viewerId, Long postId, int page, int size) {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new InvalidRequestException("게시글을 찾을 수 없습니다."));
 
         checkFollowAccess(viewerId, post);
 
-        return commentRepository.findByPostOrderByCreatedAtAsc(post);
+        return commentRepository.findByPostOrderByCreatedAtAsc(post, PageRequest.of(page, size));
     }
 
     private void checkFollowAccess(Long viewerId, Post post) {

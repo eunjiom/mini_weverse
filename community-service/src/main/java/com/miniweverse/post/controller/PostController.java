@@ -6,10 +6,13 @@ import com.miniweverse.post.entity.Post;
 import com.miniweverse.post.enums.BoardType;
 import com.miniweverse.post.service.PostService;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -18,6 +21,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
+@Validated
 public class PostController {
 
     private final PostService postService;
@@ -40,9 +44,11 @@ public class PostController {
     public ResponseEntity<List<PostResponse>> list(
             @AuthenticationPrincipal Long viewerId,
             @PathVariable Long artistId,
-            @RequestParam BoardType boardType
+            @RequestParam BoardType boardType,
+            @RequestParam(defaultValue = "0") @Min(0) int page,
+            @RequestParam(defaultValue = "20") @Min(1) @Max(50) int size
     ) {
-        List<PostResponse> posts = postService.getByArtistAndBoardType(viewerId, artistId, boardType);
+        List<PostResponse> posts = postService.getByArtistAndBoardType(viewerId, artistId, boardType, page, size);
         return ResponseEntity.ok(posts);
     }
 }

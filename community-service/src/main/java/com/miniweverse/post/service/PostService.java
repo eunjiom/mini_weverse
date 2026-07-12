@@ -12,6 +12,7 @@ import com.miniweverse.user.entity.User;
 import com.miniweverse.user.repository.ArtistProfileRepository;
 import com.miniweverse.user.repository.UserRepository;
 import java.util.List;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -57,7 +58,9 @@ public class PostService {
     }
 
     @Transactional(readOnly = true)
-    public List<PostResponse> getByArtistAndBoardType(Long viewerId, Long artistUserId, BoardType boardType) {
+    public List<PostResponse> getByArtistAndBoardType(
+            Long viewerId, Long artistUserId, BoardType boardType, int page, int size
+    ) {
         User artistUser = userRepository.findById(artistUserId)
                 .orElseThrow(() -> new InvalidRequestException("아티스트 정보를 찾을 수 없습니다."));
         ArtistProfile artistProfile = artistProfileRepository.findByUser(artistUser)
@@ -68,6 +71,19 @@ public class PostService {
             throw new NotFollowingArtistException();
         }
 
-        return postCacheService.getPosts(artistProfile, boardType);
+        int offset = page * size;
+        if (offset + size <= PostCacheService.CACHE_CAPACITY) {
+            List<PostResponse> cached = postCacheService.getCachedPosts(artistProfile, boardType);
+            int fromIndex = Math.min(offset, cached.size());
+            int toIndex = Math.min(offset + size, cached.size());
+            return cached.subList(fromIndex, toIndex);
+        }
+
+        // 캐시 범위(최근 CACHE_CAPACITY개)를 벗어난 페이지는 캐시를 거치지 않고 DB에서 직접 조회한다.
+        return postRepository.findByArtistProfileAndBoardTypeOrderByCreatedAtDesc(
+                        artistProfile, boardType, PageRequest.of(page, size))
+                .stream()
+                .map(PostResponse::from)
+                .toList();
     }
 }
