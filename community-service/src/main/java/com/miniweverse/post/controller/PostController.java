@@ -42,9 +42,7 @@ public class PostController {
             @PathVariable Long artistId,
             @RequestParam BoardType boardType
     ) {
-        List<PostResponse> posts = postService.getByArtistAndBoardType(viewerId, artistId, boardType).stream()
-                .map(PostResponse::from)
-                .toList();
+        List<PostResponse> posts = postService.getByArtistAndBoardType(viewerId, artistId, boardType);
         return ResponseEntity.ok(posts);
     }
 }

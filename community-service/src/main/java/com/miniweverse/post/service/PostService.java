@@ -3,6 +3,7 @@ package com.miniweverse.post.service;
 import com.miniweverse.exception.AuthUserExceptions.InvalidRequestException;
 import com.miniweverse.exception.AuthUserExceptions.NotFollowingArtistException;
 import com.miniweverse.follow.repository.FollowRepository;
+import com.miniweverse.post.dto.PostResponse;
 import com.miniweverse.post.entity.Post;
 import com.miniweverse.post.enums.BoardType;
 import com.miniweverse.post.repository.PostRepository;
@@ -21,17 +22,20 @@ public class PostService {
     private final UserRepository userRepository;
     private final ArtistProfileRepository artistProfileRepository;
     private final FollowRepository followRepository;
+    private final PostCacheService postCacheService;
 
     public PostService(
             PostRepository postRepository,
             UserRepository userRepository,
             ArtistProfileRepository artistProfileRepository,
-            FollowRepository followRepository
+            FollowRepository followRepository,
+            PostCacheService postCacheService
     ) {
         this.postRepository = postRepository;
         this.userRepository = userRepository;
         this.artistProfileRepository = artistProfileRepository;
         this.followRepository = followRepository;
+        this.postCacheService = postCacheService;
     }
 
     @Transactional
@@ -47,11 +51,13 @@ public class PostService {
             throw new InvalidRequestException("팔로우한 아티스트의 피드 게시판에만 글을 작성할 수 있습니다.");
         }
 
-        return postRepository.save(Post.create(author, artistProfile, boardType, content));
+        Post post = postRepository.save(Post.create(author, artistProfile, boardType, content));
+        postCacheService.evictPosts(artistProfile, boardType);
+        return post;
     }
 
     @Transactional(readOnly = true)
-    public List<Post> getByArtistAndBoardType(Long viewerId, Long artistUserId, BoardType boardType) {
+    public List<PostResponse> getByArtistAndBoardType(Long viewerId, Long artistUserId, BoardType boardType) {
         User artistUser = userRepository.findById(artistUserId)
                 .orElseThrow(() -> new InvalidRequestException("아티스트 정보를 찾을 수 없습니다."));
         ArtistProfile artistProfile = artistProfileRepository.findByUser(artistUser)
@@ -62,6 +68,6 @@ public class PostService {
             throw new NotFollowingArtistException();
         }
 
-        return postRepository.findByArtistProfileAndBoardTypeOrderByCreatedAtDesc(artistProfile, boardType);
+        return postCacheService.getPosts(artistProfile, boardType);
     }
 }
