@@ -1,8 +1,8 @@
 package com.miniweverse.membership.service;
 
 import com.miniweverse.exception.AuthUserExceptions.InvalidRequestException;
-import com.miniweverse.membership.entity.MembershipCache;
-import com.miniweverse.membership.repository.MembershipCacheRepository;
+import com.miniweverse.membership.entity.Membership;
+import com.miniweverse.membership.repository.MembershipRepository;
 import com.miniweverse.user.entity.ArtistProfile;
 import com.miniweverse.user.entity.User;
 import com.miniweverse.user.enums.ArtistCategory;
@@ -19,22 +19,22 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class MembershipService {
 
-    private final MembershipCacheRepository membershipCacheRepository;
+    private final MembershipRepository membershipRepository;
     private final UserRepository userRepository;
     private final ArtistProfileRepository artistProfileRepository;
 
     public MembershipService(
-            MembershipCacheRepository membershipCacheRepository,
+            MembershipRepository membershipRepository,
             UserRepository userRepository,
             ArtistProfileRepository artistProfileRepository
     ) {
-        this.membershipCacheRepository = membershipCacheRepository;
+        this.membershipRepository = membershipRepository;
         this.userRepository = userRepository;
         this.artistProfileRepository = artistProfileRepository;
     }
 
     @Transactional
-    public MembershipCache subscribe(Long subscriberId, Long artistId) {
+    public Membership subscribe(Long subscriberId, Long artistId) {
         User subscriber = userRepository.findById(subscriberId)
                 .orElseThrow(() -> new InvalidRequestException("구독자 정보를 찾을 수 없습니다."));
         User artist = userRepository.findById(artistId)
@@ -49,7 +49,7 @@ public class MembershipService {
         // findBySubscriberAndArtist는 PESSIMISTIC_WRITE 락을 걸기 때문에, 동시에 들어온
         // 같은 (subscriber, artist) 요청은 여기서 순서대로 직렬화된다.
         LocalDateTime now = LocalDateTime.now();
-        return membershipCacheRepository.findBySubscriberAndArtist(subscriber, artist)
+        return membershipRepository.findBySubscriberAndArtist(subscriber, artist)
                 .map(membership -> {
                     membership.renew(now);
                     return membership;
@@ -57,10 +57,10 @@ public class MembershipService {
                 .orElseGet(() -> createOrRenew(subscriber, artist, now));
     }
 
-    private MembershipCache createOrRenew(User subscriber, User artist, LocalDateTime now) {
+    private Membership createOrRenew(User subscriber, User artist, LocalDateTime now) {
         try {
-            return membershipCacheRepository.save(
-                    MembershipCache.create(subscriber, artist, MembershipStatus.ACTIVE, now.plusMonths(1)));
+            return membershipRepository.save(
+                    Membership.create(subscriber, artist, MembershipStatus.ACTIVE, now.plusMonths(1)));
         } catch (DataIntegrityViolationException e) {
             // 동시 요청으로 최초 구독 확인(락을 걸 row가 아직 없던 시점)을 통과한 뒤 유니크 제약에서 걸린 경우.
             // 이미 flush가 실패해서 현재 트랜잭션의 영속성 컨텍스트는 더 이상 안전하게 쓸 수 없으므로,
@@ -72,7 +72,7 @@ public class MembershipService {
 
     @Transactional
     public void cancel(Long membershipId, Long requesterId) {
-        MembershipCache membership = membershipCacheRepository.findById(membershipId)
+        Membership membership = membershipRepository.findById(membershipId)
                 .orElseThrow(() -> new InvalidRequestException("구독 정보를 찾을 수 없습니다."));
         if (!Objects.equals(membership.getSubscriber().getId(), requesterId)) {
             throw new InvalidRequestException("본인 구독만 취소할 수 있습니다.");
@@ -85,7 +85,7 @@ public class MembershipService {
      */
     @Transactional
     public void expireOverdueMemberships(LocalDateTime now) {
-        List<MembershipCache> overdue = membershipCacheRepository.findByStatusAndExpiresAtBefore(MembershipStatus.ACTIVE, now);
-        overdue.forEach(MembershipCache::expire);
+        List<Membership> overdue = membershipRepository.findByStatusAndExpiresAtBefore(MembershipStatus.ACTIVE, now);
+        overdue.forEach(Membership::expire);
     }
 }

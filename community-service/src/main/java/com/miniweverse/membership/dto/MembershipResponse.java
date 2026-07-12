@@ -1,6 +1,6 @@
 package com.miniweverse.membership.dto;
 
-import com.miniweverse.membership.entity.MembershipCache;
+import com.miniweverse.membership.entity.Membership;
 import java.time.LocalDateTime;
 
 public record MembershipResponse(
@@ -9,7 +9,7 @@ public record MembershipResponse(
         String status,
         LocalDateTime expiresAt
 ) {
-    public static MembershipResponse from(MembershipCache membership) {
+    public static MembershipResponse from(Membership membership) {
         return new MembershipResponse(
                 membership.getId(),
                 membership.getArtist().getId(),

@@ -29,15 +29,15 @@ import lombok.NoArgsConstructor;
  */
 @Entity
 @Table(
-        name = "membership_caches",
+        name = "memberships",
         uniqueConstraints = @UniqueConstraint(
-                name = "uk_membership_caches_subscriber_artist",
+                name = "uk_memberships_subscriber_artist",
                 columnNames = {"subscriber_id", "artist_id"}
         )
 )
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class MembershipCache extends BaseTimeEntity {
+public class Membership extends BaseTimeEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -59,14 +59,14 @@ public class MembershipCache extends BaseTimeEntity {
 
     private LocalDateTime cancelledAt;
 
-    private MembershipCache(User subscriber, User artist, MembershipStatus status, LocalDateTime expiresAt) {
+    private Membership(User subscriber, User artist, MembershipStatus status, LocalDateTime expiresAt) {
         this.subscriber = subscriber;
         this.artist = artist;
         this.status = status;
         this.expiresAt = expiresAt;
     }
 
-    public static MembershipCache create(User subscriber, User artist, MembershipStatus status, LocalDateTime expiresAt) {
+    public static Membership create(User subscriber, User artist, MembershipStatus status, LocalDateTime expiresAt) {
         if (subscriber == null || artist == null) {
             throw new InvalidRequestException("subscriber와 artist는 필수입니다.");
         }
@@ -78,7 +78,7 @@ public class MembershipCache extends BaseTimeEntity {
         if (artist.getRole() != Role.ARTIST) {
             throw new NotArtistException();
         }
-        return new MembershipCache(subscriber, artist, status, expiresAt);
+        return new Membership(subscriber, artist, status, expiresAt);
     }
 
     /**
