@@ -100,6 +100,9 @@ public class Membership extends BaseTimeEntity {
         if (status != MembershipStatus.ACTIVE) {
             throw new InvalidRequestException("활성 구독만 취소할 수 있습니다.");
         }
+        if (cancelledAt != null) {
+            throw new InvalidRequestException("이미 취소된 구독입니다.");
+        }
         this.cancelledAt = LocalDateTime.now();
     }
 }
