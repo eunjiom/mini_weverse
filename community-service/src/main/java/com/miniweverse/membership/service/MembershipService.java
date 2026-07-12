@@ -72,7 +72,7 @@ public class MembershipService {
 
     @Transactional
     public void cancel(Long membershipId, Long requesterId) {
-        Membership membership = membershipRepository.findById(membershipId)
+        Membership membership = membershipRepository.findByIdForUpdate(membershipId)
                 .orElseThrow(() -> new InvalidRequestException("구독 정보를 찾을 수 없습니다."));
         if (!Objects.equals(membership.getSubscriber().getId(), requesterId)) {
             throw new InvalidRequestException("본인 구독만 취소할 수 있습니다.");

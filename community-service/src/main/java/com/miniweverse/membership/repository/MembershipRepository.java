@@ -9,6 +9,8 @@ import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 public interface MembershipRepository extends JpaRepository<Membership, Long> {
 
@@ -18,6 +20,14 @@ public interface MembershipRepository extends JpaRepository<Membership, Long> {
      */
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     Optional<Membership> findBySubscriberAndArtist(User subscriber, User artist);
+
+    /**
+     * 같은 구독 건에 대한 동시 취소 요청을 직렬화하기 위해 비관적 락을 건다.
+     * 락 없이 조회하면 두 요청이 모두 "아직 취소 안 됨" 상태를 읽고 통과해버릴 수 있다.
+     */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT m FROM Membership m WHERE m.id = :id")
+    Optional<Membership> findByIdForUpdate(@Param("id") Long id);
 
     List<Membership> findByStatusAndExpiresAtBefore(MembershipStatus status, LocalDateTime time);
 }
