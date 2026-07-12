@@ -2,7 +2,6 @@ package com.miniweverse.follow.controller;
 
 import com.miniweverse.follow.dto.FollowRequest;
 import com.miniweverse.follow.dto.FollowResponse;
-import com.miniweverse.follow.entity.Follow;
 import com.miniweverse.follow.service.FollowService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -28,8 +27,8 @@ public class FollowController {
             @AuthenticationPrincipal Long followerId,
             @Valid @RequestBody FollowRequest request
     ) {
-        Follow follow = followService.follow(followerId, request.artistId());
-        return ResponseEntity.status(HttpStatus.CREATED).body(FollowResponse.from(follow));
+        followService.follow(followerId, request.artistId());
+        return ResponseEntity.status(HttpStatus.CREATED).body(new FollowResponse(request.artistId()));
     }
 
     @DeleteMapping("/follows/{artistId}")

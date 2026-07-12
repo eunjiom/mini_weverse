@@ -22,17 +22,18 @@ public class FollowService {
     }
 
     @Transactional
-    public Follow follow(Long followerId, Long artistId) {
+    public void follow(Long followerId, Long artistId) {
         User follower = userRepository.findById(followerId)
                 .orElseThrow(() -> new InvalidRequestException("유저 정보를 찾을 수 없습니다."));
         User artist = userRepository.findById(artistId)
                 .orElseThrow(() -> new InvalidRequestException("아티스트 정보를 찾을 수 없습니다."));
+        Follow.create(follower, artist);
 
-        if (followRepository.findByFollowerAndArtist(follower, artist).isPresent()) {
+        if (followRepository.existsByFollowerAndArtist(followerId, artistId)) {
             throw new DuplicateFollowException();
         }
         try {
-            return followRepository.save(Follow.create(follower, artist));
+            followRepository.insert(followerId, artistId);
         } catch (DataIntegrityViolationException e) {
             // 동시 요청으로 중복 확인을 통과한 뒤 유니크 제약에서 걸린 경우.
             throw new DuplicateFollowException();
@@ -41,13 +42,14 @@ public class FollowService {
 
     @Transactional
     public void unfollow(Long followerId, Long artistId) {
-        User follower = userRepository.findById(followerId)
+        userRepository.findById(followerId)
                 .orElseThrow(() -> new InvalidRequestException("유저 정보를 찾을 수 없습니다."));
-        User artist = userRepository.findById(artistId)
+        userRepository.findById(artistId)
                 .orElseThrow(() -> new InvalidRequestException("아티스트 정보를 찾을 수 없습니다."));
 
-        Follow follow = followRepository.findByFollowerAndArtist(follower, artist)
-                .orElseThrow(() -> new InvalidRequestException("팔로우 중이 아닙니다."));
-        followRepository.delete(follow);
+        if (!followRepository.existsByFollowerAndArtist(followerId, artistId)) {
+            throw new InvalidRequestException("팔로우 중이 아닙니다.");
+        }
+        followRepository.delete(followerId, artistId);
     }
 }

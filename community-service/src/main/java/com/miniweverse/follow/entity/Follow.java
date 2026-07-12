@@ -1,48 +1,23 @@
 package com.miniweverse.follow.entity;
 
-import com.miniweverse.common.BaseTimeEntity;
 import com.miniweverse.exception.AuthUserExceptions.InvalidRequestException;
 import com.miniweverse.exception.AuthUserExceptions.NotArtistException;
 import com.miniweverse.exception.AuthUserExceptions.SelfFollowNotAllowedException;
 import com.miniweverse.user.entity.User;
 import com.miniweverse.user.enums.Role;
-import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
-import jakarta.persistence.UniqueConstraint;
 import java.util.Objects;
-import lombok.AccessLevel;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 
-@Entity
-@Table(
-        name = "follows",
-        uniqueConstraints = @UniqueConstraint(
-                name = "uk_follows_follower_artist",
-                columnNames = {"follower_id", "artist_id"}
-        )
-)
+/**
+ * follower/artist 조합 자체가 이 관계의 유일한 식별자라, 별도 영속성 없이
+ * 팔로우 생성 규칙만 검증하는 순수 도메인 객체다. 실제 저장/조회는 FollowRepository가
+ * (follower_id, artist_id)를 직접 다루는 네이티브 쿼리로 처리한다.
+ */
 @Getter
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class Follow extends BaseTimeEntity {
+public class Follow {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "follower_id", nullable = false)
-    private User follower;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "artist_id", nullable = false)
-    private User artist;
+    private final User follower;
+    private final User artist;
 
     private Follow(User follower, User artist) {
         this.follower = follower;
