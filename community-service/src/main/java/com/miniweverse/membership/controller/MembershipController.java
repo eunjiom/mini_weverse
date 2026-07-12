@@ -2,8 +2,8 @@ package com.miniweverse.membership.controller;
 
 import com.miniweverse.membership.dto.MembershipResponse;
 import com.miniweverse.membership.dto.SubscribeRequest;
+import com.miniweverse.membership.entity.MembershipCache;
 import com.miniweverse.membership.service.MembershipService;
-import com.miniweverse.user.entity.MembershipCache;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;

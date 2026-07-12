@@ -1,13 +1,13 @@
 package com.miniweverse.post.service;
 
 import com.miniweverse.exception.AuthUserExceptions.InvalidRequestException;
+import com.miniweverse.follow.repository.FollowRepository;
 import com.miniweverse.post.entity.Post;
 import com.miniweverse.post.enums.BoardType;
 import com.miniweverse.post.repository.PostRepository;
 import com.miniweverse.user.entity.ArtistProfile;
 import com.miniweverse.user.entity.User;
 import com.miniweverse.user.repository.ArtistProfileRepository;
-import com.miniweverse.user.repository.FollowRepository;
 import com.miniweverse.user.repository.UserRepository;
 import java.util.List;
 import org.springframework.stereotype.Service;

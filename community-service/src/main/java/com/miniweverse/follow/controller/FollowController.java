@@ -2,8 +2,8 @@ package com.miniweverse.follow.controller;
 
 import com.miniweverse.follow.dto.FollowRequest;
 import com.miniweverse.follow.dto.FollowResponse;
+import com.miniweverse.follow.entity.Follow;
 import com.miniweverse.follow.service.FollowService;
-import com.miniweverse.user.entity.Follow;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

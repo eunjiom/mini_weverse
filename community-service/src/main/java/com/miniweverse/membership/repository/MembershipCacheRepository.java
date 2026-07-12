@@ -1,6 +1,6 @@
-package com.miniweverse.user.repository;
+package com.miniweverse.membership.repository;
 
-import com.miniweverse.user.entity.MembershipCache;
+import com.miniweverse.membership.entity.MembershipCache;
 import com.miniweverse.user.entity.User;
 import com.miniweverse.user.enums.MembershipStatus;
 import jakarta.persistence.LockModeType;

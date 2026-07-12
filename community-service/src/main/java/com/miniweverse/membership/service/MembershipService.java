@@ -1,13 +1,13 @@
 package com.miniweverse.membership.service;
 
 import com.miniweverse.exception.AuthUserExceptions.InvalidRequestException;
+import com.miniweverse.membership.entity.MembershipCache;
+import com.miniweverse.membership.repository.MembershipCacheRepository;
 import com.miniweverse.user.entity.ArtistProfile;
-import com.miniweverse.user.entity.MembershipCache;
 import com.miniweverse.user.entity.User;
 import com.miniweverse.user.enums.ArtistCategory;
 import com.miniweverse.user.enums.MembershipStatus;
 import com.miniweverse.user.repository.ArtistProfileRepository;
-import com.miniweverse.user.repository.MembershipCacheRepository;
 import com.miniweverse.user.repository.UserRepository;
 import java.time.LocalDateTime;
 import java.util.List;

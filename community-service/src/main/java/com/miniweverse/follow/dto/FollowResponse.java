@@ -1,6 +1,6 @@
 package com.miniweverse.follow.dto;
 
-import com.miniweverse.user.entity.Follow;
+import com.miniweverse.follow.entity.Follow;
 
 public record FollowResponse(
         Long followId,

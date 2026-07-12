@@ -1,10 +1,11 @@
-package com.miniweverse.user.entity;
+package com.miniweverse.follow.entity;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.miniweverse.exception.AuthUserExceptions.NotArtistException;
 import com.miniweverse.exception.AuthUserExceptions.SelfFollowNotAllowedException;
+import com.miniweverse.user.entity.User;
 import com.miniweverse.user.enums.Role;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;

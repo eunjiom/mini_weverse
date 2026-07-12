@@ -1,6 +1,6 @@
 package com.miniweverse.membership.dto;
 
-import com.miniweverse.user.entity.MembershipCache;
+import com.miniweverse.membership.entity.MembershipCache;
 import java.time.LocalDateTime;
 
 public record MembershipResponse(

@@ -2,9 +2,9 @@ package com.miniweverse.follow.service;
 
 import com.miniweverse.exception.AuthUserExceptions.DuplicateFollowException;
 import com.miniweverse.exception.AuthUserExceptions.InvalidRequestException;
-import com.miniweverse.user.entity.Follow;
+import com.miniweverse.follow.entity.Follow;
+import com.miniweverse.follow.repository.FollowRepository;
 import com.miniweverse.user.entity.User;
-import com.miniweverse.user.repository.FollowRepository;
 import com.miniweverse.user.repository.UserRepository;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;

@@ -1,8 +1,9 @@
-package com.miniweverse.user.entity;
+package com.miniweverse.membership.entity;
 
 import com.miniweverse.common.BaseTimeEntity;
 import com.miniweverse.exception.AuthUserExceptions.InvalidRequestException;
 import com.miniweverse.exception.AuthUserExceptions.NotArtistException;
+import com.miniweverse.user.entity.User;
 import java.util.Objects;
 import com.miniweverse.user.enums.MembershipStatus;
 import com.miniweverse.user.enums.Role;

@@ -1,11 +1,12 @@
-package com.miniweverse.user.repository;
+package com.miniweverse.follow.repository;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.miniweverse.follow.entity.Follow;
 import com.miniweverse.support.PostgresTestSupport;
-import com.miniweverse.user.entity.Follow;
 import com.miniweverse.user.entity.User;
 import com.miniweverse.user.enums.Role;
+import com.miniweverse.user.repository.UserRepository;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
