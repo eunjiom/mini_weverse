@@ -1,8 +1,9 @@
-package com.miniweverse.user.entity;
+package com.miniweverse.membership.entity;
 
 import com.miniweverse.common.BaseTimeEntity;
 import com.miniweverse.exception.AuthUserExceptions.InvalidRequestException;
 import com.miniweverse.exception.AuthUserExceptions.NotArtistException;
+import com.miniweverse.user.entity.User;
 import java.util.Objects;
 import com.miniweverse.user.enums.MembershipStatus;
 import com.miniweverse.user.enums.Role;
@@ -28,15 +29,15 @@ import lombok.NoArgsConstructor;
  */
 @Entity
 @Table(
-        name = "membership_caches",
+        name = "memberships",
         uniqueConstraints = @UniqueConstraint(
-                name = "uk_membership_caches_subscriber_artist",
+                name = "uk_memberships_subscriber_artist",
                 columnNames = {"subscriber_id", "artist_id"}
         )
 )
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class MembershipCache extends BaseTimeEntity {
+public class Membership extends BaseTimeEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -58,14 +59,14 @@ public class MembershipCache extends BaseTimeEntity {
 
     private LocalDateTime cancelledAt;
 
-    private MembershipCache(User subscriber, User artist, MembershipStatus status, LocalDateTime expiresAt) {
+    private Membership(User subscriber, User artist, MembershipStatus status, LocalDateTime expiresAt) {
         this.subscriber = subscriber;
         this.artist = artist;
         this.status = status;
         this.expiresAt = expiresAt;
     }
 
-    public static MembershipCache create(User subscriber, User artist, MembershipStatus status, LocalDateTime expiresAt) {
+    public static Membership create(User subscriber, User artist, MembershipStatus status, LocalDateTime expiresAt) {
         if (subscriber == null || artist == null) {
             throw new InvalidRequestException("subscriber와 artist는 필수입니다.");
         }
@@ -77,7 +78,7 @@ public class MembershipCache extends BaseTimeEntity {
         if (artist.getRole() != Role.ARTIST) {
             throw new NotArtistException();
         }
-        return new MembershipCache(subscriber, artist, status, expiresAt);
+        return new Membership(subscriber, artist, status, expiresAt);
     }
 
     /**
@@ -98,6 +99,9 @@ public class MembershipCache extends BaseTimeEntity {
     public void cancel() {
         if (status != MembershipStatus.ACTIVE) {
             throw new InvalidRequestException("활성 구독만 취소할 수 있습니다.");
+        }
+        if (cancelledAt != null) {
+            throw new InvalidRequestException("이미 취소된 구독입니다.");
         }
         this.cancelledAt = LocalDateTime.now();
     }

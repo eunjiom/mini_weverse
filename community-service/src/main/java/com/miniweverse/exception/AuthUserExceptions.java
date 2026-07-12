@@ -59,4 +59,10 @@ public final class AuthUserExceptions {
             super(AuthUserErrorCode.INVALID_REFRESH_TOKEN);
         }
     }
+
+    public static class NotFollowingArtistException extends BusinessException {
+        public NotFollowingArtistException() {
+            super(AuthUserErrorCode.NOT_FOLLOWING_ARTIST);
+        }
+    }
 }

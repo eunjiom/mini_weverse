@@ -10,6 +10,11 @@ spring:
       ddl-auto: update
     defer-datasource-initialization: true
     open-in-view: false
+    properties:
+      jakarta:
+        persistence:
+          lock:
+            timeout: 3000
   sql:
     init:
       mode: always

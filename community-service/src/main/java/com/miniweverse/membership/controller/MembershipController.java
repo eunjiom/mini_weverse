@@ -2,8 +2,8 @@ package com.miniweverse.membership.controller;
 
 import com.miniweverse.membership.dto.MembershipResponse;
 import com.miniweverse.membership.dto.SubscribeRequest;
+import com.miniweverse.membership.entity.Membership;
 import com.miniweverse.membership.service.MembershipService;
-import com.miniweverse.user.entity.MembershipCache;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -26,7 +26,7 @@ public class MembershipController {
             @AuthenticationPrincipal Long subscriberId,
             @Valid @RequestBody SubscribeRequest request
     ) {
-        MembershipCache membership = membershipService.subscribe(subscriberId, request.artistId());
+        Membership membership = membershipService.subscribe(subscriberId, request.artistId());
         return ResponseEntity.ok(MembershipResponse.from(membership));
     }
 
