@@ -38,10 +38,11 @@ public class PostController {
 
     @GetMapping("/artists/{artistId}/posts")
     public ResponseEntity<List<PostResponse>> list(
+            @AuthenticationPrincipal Long viewerId,
             @PathVariable Long artistId,
             @RequestParam BoardType boardType
     ) {
-        List<PostResponse> posts = postService.getByArtistAndBoardType(artistId, boardType).stream()
+        List<PostResponse> posts = postService.getByArtistAndBoardType(viewerId, artistId, boardType).stream()
                 .map(PostResponse::from)
                 .toList();
         return ResponseEntity.ok(posts);

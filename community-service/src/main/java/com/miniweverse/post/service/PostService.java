@@ -1,6 +1,7 @@
 package com.miniweverse.post.service;
 
 import com.miniweverse.exception.AuthUserExceptions.InvalidRequestException;
+import com.miniweverse.exception.AuthUserExceptions.NotFollowingArtistException;
 import com.miniweverse.follow.repository.FollowRepository;
 import com.miniweverse.post.entity.Post;
 import com.miniweverse.post.enums.BoardType;
@@ -50,11 +51,17 @@ public class PostService {
     }
 
     @Transactional(readOnly = true)
-    public List<Post> getByArtistAndBoardType(Long artistUserId, BoardType boardType) {
+    public List<Post> getByArtistAndBoardType(Long viewerId, Long artistUserId, BoardType boardType) {
         User artistUser = userRepository.findById(artistUserId)
                 .orElseThrow(() -> new InvalidRequestException("아티스트 정보를 찾을 수 없습니다."));
         ArtistProfile artistProfile = artistProfileRepository.findByUser(artistUser)
                 .orElseThrow(() -> new InvalidRequestException("아티스트 프로필을 찾을 수 없습니다."));
+
+        boolean isArtistSelf = viewerId.equals(artistUserId);
+        if (!isArtistSelf && !followRepository.existsByFollowerAndArtist(viewerId, artistUserId)) {
+            throw new NotFollowingArtistException();
+        }
+
         return postRepository.findByArtistProfileAndBoardTypeOrderByCreatedAtDesc(artistProfile, boardType);
     }
 }
