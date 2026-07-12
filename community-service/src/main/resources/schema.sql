@@ -17,5 +17,6 @@ CREATE TABLE IF NOT EXISTS follows (
     artist_id BIGINT NOT NULL REFERENCES users (id),
     created_at TIMESTAMP(6) NOT NULL,
     updated_at TIMESTAMP(6) NOT NULL,
-    PRIMARY KEY (follower_id, artist_id)
+    PRIMARY KEY (follower_id, artist_id),
+    CONSTRAINT chk_follows_no_self_follow CHECK (follower_id <> artist_id)
 );

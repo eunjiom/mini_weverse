@@ -12,6 +12,7 @@ import com.miniweverse.user.entity.User;
 import com.miniweverse.user.repository.ArtistProfileRepository;
 import com.miniweverse.user.repository.UserRepository;
 import java.util.List;
+import java.util.Objects;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -66,17 +67,24 @@ public class PostService {
         ArtistProfile artistProfile = artistProfileRepository.findByUser(artistUser)
                 .orElseThrow(() -> new InvalidRequestException("아티스트 프로필을 찾을 수 없습니다."));
 
-        boolean isArtistSelf = viewerId.equals(artistUserId);
+        boolean isArtistSelf = Objects.equals(viewerId, artistUserId);
         if (!isArtistSelf && !followRepository.existsByFollowerAndArtist(viewerId, artistUserId)) {
             throw new NotFollowingArtistException();
         }
 
-        int offset = page * size;
-        if (offset + size <= PostCacheService.CACHE_CAPACITY) {
+        // page에는 상한이 없어 int로 계산하면 큰 값에서 오버플로가 날 수 있으므로 long으로 계산한다.
+        long offset = (long) page * size;
+        if (offset >= 0 && offset + size <= PostCacheService.CACHE_CAPACITY) {
             List<PostResponse> cached = postCacheService.getCachedPosts(artistProfile, boardType);
-            int fromIndex = Math.min(offset, cached.size());
-            int toIndex = Math.min(offset + size, cached.size());
+            int fromIndex = Math.min((int) offset, cached.size());
+            int toIndex = Math.min((int) (offset + size), cached.size());
             return cached.subList(fromIndex, toIndex);
+        }
+
+        // JPA의 Query.setFirstResult(int)는 offset이 Integer.MAX_VALUE를 넘으면 예외를 던진다.
+        // 그 범위를 벗어나는 페이지는 실제로 존재할 수 없는 데이터이므로 조회 없이 빈 목록을 반환한다.
+        if (offset > Integer.MAX_VALUE) {
+            return List.of();
         }
 
         // 캐시 범위(최근 CACHE_CAPACITY개)를 벗어난 페이지는 캐시를 거치지 않고 DB에서 직접 조회한다.
