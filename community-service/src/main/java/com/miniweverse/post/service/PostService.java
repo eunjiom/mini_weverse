@@ -58,6 +58,29 @@ public class PostService {
         return post;
     }
 
+    @Transactional
+    public Post update(Long postId, Long requesterId, String content) {
+        Post post = postRepository.findByIdWithDetails(postId)
+                .orElseThrow(() -> new InvalidRequestException("게시글을 찾을 수 없습니다."));
+        if (post.getAuthor() == null || !Objects.equals(post.getAuthor().getId(), requesterId)) {
+            throw new InvalidRequestException("본인 게시글만 수정할 수 있습니다.");
+        }
+        post.updateContent(content);
+        postCacheService.evictPosts(post.getArtistProfile(), post.getBoardType());
+        return post;
+    }
+
+    @Transactional
+    public void delete(Long postId, Long requesterId) {
+        Post post = postRepository.findByIdWithDetails(postId)
+                .orElseThrow(() -> new InvalidRequestException("게시글을 찾을 수 없습니다."));
+        if (post.getAuthor() == null || !Objects.equals(post.getAuthor().getId(), requesterId)) {
+            throw new InvalidRequestException("본인 게시글만 삭제할 수 있습니다.");
+        }
+        post.delete();
+        postCacheService.evictPosts(post.getArtistProfile(), post.getBoardType());
+    }
+
     @Transactional(readOnly = true)
     public List<PostResponse> getByArtistAndBoardType(
             Long viewerId, Long artistUserId, BoardType boardType, int page, int size

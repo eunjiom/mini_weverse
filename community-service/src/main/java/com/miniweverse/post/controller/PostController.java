@@ -2,6 +2,7 @@ package com.miniweverse.post.controller;
 
 import com.miniweverse.post.dto.PostCreateRequest;
 import com.miniweverse.post.dto.PostResponse;
+import com.miniweverse.post.dto.PostUpdateRequest;
 import com.miniweverse.post.entity.Post;
 import com.miniweverse.post.enums.BoardType;
 import com.miniweverse.post.service.PostService;
@@ -13,7 +14,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -50,5 +53,24 @@ public class PostController {
     ) {
         List<PostResponse> posts = postService.getByArtistAndBoardType(viewerId, artistId, boardType, page, size);
         return ResponseEntity.ok(posts);
+    }
+
+    @PatchMapping("/posts/{postId}")
+    public ResponseEntity<PostResponse> update(
+            @AuthenticationPrincipal Long requesterId,
+            @PathVariable Long postId,
+            @Valid @RequestBody PostUpdateRequest request
+    ) {
+        Post post = postService.update(postId, requesterId, request.content());
+        return ResponseEntity.ok(PostResponse.from(post));
+    }
+
+    @DeleteMapping("/posts/{postId}")
+    public ResponseEntity<Void> delete(
+            @AuthenticationPrincipal Long requesterId,
+            @PathVariable Long postId
+    ) {
+        postService.delete(postId, requesterId);
+        return ResponseEntity.noContent().build();
     }
 }

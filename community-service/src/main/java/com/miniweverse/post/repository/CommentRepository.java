@@ -4,12 +4,26 @@ import com.miniweverse.post.entity.Comment;
 import com.miniweverse.post.entity.Post;
 import com.miniweverse.user.entity.User;
 import java.util.List;
+import java.util.Optional;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 public interface CommentRepository extends JpaRepository<Comment, Long> {
+
+    /**
+     * 수정/삭제 시 본인 확인 및 응답 매핑에 필요한 연관관계까지 미리 로딩한다.
+     * author는 LEFT JOIN이다 — INNER JOIN이면 작성자가 탈퇴(User.deletedAt)한 댓글이
+     * User의 {@code @SQLRestriction} 때문에 조회 자체에서 통째로 걸러진다.
+     */
+    @Query("""
+            SELECT c FROM Comment c
+            LEFT JOIN FETCH c.author
+            JOIN FETCH c.post
+            WHERE c.id = :id
+            """)
+    Optional<Comment> findByIdWithDetails(@Param("id") Long id);
 
     /**
      * open-in-view: false라 컨트롤러에서 지연 로딩 필드(author, post)에 접근하면
@@ -20,7 +34,7 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
      */
     @Query("""
             SELECT c FROM Comment c
-            JOIN FETCH c.author
+            LEFT JOIN FETCH c.author
             JOIN FETCH c.post
             WHERE c.post = :post
             ORDER BY c.createdAt ASC, c.id ASC

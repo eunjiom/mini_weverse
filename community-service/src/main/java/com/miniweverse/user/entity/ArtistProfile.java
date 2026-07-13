@@ -20,6 +20,8 @@ import java.time.LocalDateTime;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.NotFound;
+import org.hibernate.annotations.NotFoundAction;
 import org.hibernate.annotations.SQLRestriction;
 
 /**
@@ -38,8 +40,10 @@ public class ArtistProfile extends BaseTimeEntity {
     private Long id;
 
     // 유니크 제약은 schema.sql의 uk_artist_profiles_user_id(부분 인덱스)로 건다 — soft delete된 프로필은 제외해야 재생성 가능.
+    // user가 탈퇴(soft delete)해도 프로필 참조는 예외 대신 null로 취급한다(User @SQLRestriction과의 상호작용).
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
+    @NotFound(action = NotFoundAction.IGNORE)
     private User user;
 
     @Column(nullable = false)

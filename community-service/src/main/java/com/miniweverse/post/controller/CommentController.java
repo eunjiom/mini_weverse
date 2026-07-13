@@ -2,6 +2,7 @@ package com.miniweverse.post.controller;
 
 import com.miniweverse.post.dto.CommentCreateRequest;
 import com.miniweverse.post.dto.CommentResponse;
+import com.miniweverse.post.dto.CommentUpdateRequest;
 import com.miniweverse.post.entity.Comment;
 import com.miniweverse.post.service.CommentService;
 import jakarta.validation.Valid;
@@ -12,7 +13,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -50,5 +53,24 @@ public class CommentController {
                 .map(CommentResponse::from)
                 .toList();
         return ResponseEntity.ok(comments);
+    }
+
+    @PatchMapping("/comments/{commentId}")
+    public ResponseEntity<CommentResponse> update(
+            @AuthenticationPrincipal Long requesterId,
+            @PathVariable Long commentId,
+            @Valid @RequestBody CommentUpdateRequest request
+    ) {
+        Comment comment = commentService.update(commentId, requesterId, request.content());
+        return ResponseEntity.ok(CommentResponse.from(comment));
+    }
+
+    @DeleteMapping("/comments/{commentId}")
+    public ResponseEntity<Void> delete(
+            @AuthenticationPrincipal Long requesterId,
+            @PathVariable Long commentId
+    ) {
+        commentService.delete(commentId, requesterId);
+        return ResponseEntity.noContent().build();
     }
 }

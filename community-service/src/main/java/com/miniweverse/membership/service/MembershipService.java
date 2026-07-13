@@ -1,6 +1,7 @@
 package com.miniweverse.membership.service;
 
 import com.miniweverse.exception.AuthUserExceptions.InvalidRequestException;
+import com.miniweverse.membership.dto.MyMembershipResponse;
 import com.miniweverse.membership.entity.Membership;
 import com.miniweverse.membership.repository.MembershipRepository;
 import com.miniweverse.user.entity.ArtistProfile;
@@ -68,6 +69,15 @@ public class MembershipService {
             // 이번엔 이미 생성된 row를 findBySubscriberAndArtist가 락을 걸고 정상적으로 갱신한다.
             throw new InvalidRequestException("이미 구독 처리 중입니다. 잠시 후 다시 시도해주세요.");
         }
+    }
+
+    @Transactional(readOnly = true)
+    public List<MyMembershipResponse> getMyMemberships(Long subscriberId) {
+        userRepository.findById(subscriberId)
+                .orElseThrow(() -> new InvalidRequestException("유저 정보를 찾을 수 없습니다."));
+        return membershipRepository.findBySubscriberIdWithArtist(subscriberId).stream()
+                .map(MyMembershipResponse::from)
+                .toList();
     }
 
     @Transactional

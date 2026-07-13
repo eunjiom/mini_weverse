@@ -2,10 +2,12 @@ package com.miniweverse.follow.service;
 
 import com.miniweverse.exception.AuthUserExceptions.DuplicateFollowException;
 import com.miniweverse.exception.AuthUserExceptions.InvalidRequestException;
+import com.miniweverse.follow.dto.FollowedArtistResponse;
 import com.miniweverse.follow.entity.Follow;
 import com.miniweverse.follow.repository.FollowRepository;
 import com.miniweverse.user.entity.User;
 import com.miniweverse.user.repository.UserRepository;
+import java.util.List;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -38,6 +40,12 @@ public class FollowService {
             // 동시 요청으로 중복 확인을 통과한 뒤 유니크 제약에서 걸린 경우.
             throw new DuplicateFollowException();
         }
+    }
+
+    public List<FollowedArtistResponse> getFollowedArtists(Long followerId) {
+        userRepository.findById(followerId)
+                .orElseThrow(() -> new InvalidRequestException("유저 정보를 찾을 수 없습니다."));
+        return followRepository.findFollowedArtists(followerId);
     }
 
     @Transactional
