@@ -56,4 +56,11 @@ public class Comment extends BaseTimeEntity {
         }
         return new Comment(post, author, content);
     }
+
+    public void updateContent(String content) {
+        if (content == null || content.isBlank()) {
+            throw new InvalidRequestException("본문은 필수입니다.");
+        }
+        this.content = content;
+    }
 }
