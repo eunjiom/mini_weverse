@@ -48,13 +48,13 @@ public class FollowService {
         return followRepository.findFollowedArtists(followerId);
     }
 
+    /**
+     * 팔로우 대상(artist)이 탈퇴했더라도 언팔로우는 항상 가능해야 한다 — follower/artist
+     * 존재 여부를 다시 검증하면, 탈퇴한 아티스트를 팔로우 중이던 유저가 영구히 언팔로우할 수
+     * 없게 되는 문제가 생긴다. follows row 존재 여부 자체가 이미 신뢰할 수 있는 근거다.
+     */
     @Transactional
     public void unfollow(Long followerId, Long artistId) {
-        userRepository.findById(followerId)
-                .orElseThrow(() -> new InvalidRequestException("유저 정보를 찾을 수 없습니다."));
-        userRepository.findById(artistId)
-                .orElseThrow(() -> new InvalidRequestException("아티스트 정보를 찾을 수 없습니다."));
-
         if (!followRepository.existsByFollowerAndArtist(followerId, artistId)) {
             throw new InvalidRequestException("팔로우 중이 아닙니다.");
         }

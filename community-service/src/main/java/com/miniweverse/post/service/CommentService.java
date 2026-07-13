@@ -79,8 +79,14 @@ public class CommentService {
     }
 
     private void checkFollowAccess(Long viewerId, Post post) {
-        Long artistUserId = post.getArtistProfile().getUser().getId();
-        boolean isArtistSelf = viewerId.equals(artistUserId);
+        // artistProfile 또는 그 소유주 User가 탈퇴했으면(@NotFound(IGNORE)로 null 처리됨) 아티스트를
+        // 특정할 수 없으므로, 팔로우 여부를 판단하지 못하고 명확한 에러로 막는다(NPE 대신).
+        User artistUser = post.getArtistProfile() != null ? post.getArtistProfile().getUser() : null;
+        if (artistUser == null) {
+            throw new InvalidRequestException("아티스트 정보를 찾을 수 없습니다.");
+        }
+        Long artistUserId = artistUser.getId();
+        boolean isArtistSelf = Objects.equals(viewerId, artistUserId);
         if (!isArtistSelf && !followRepository.existsByFollowerAndArtist(viewerId, artistUserId)) {
             throw new NotFollowingArtistException();
         }
