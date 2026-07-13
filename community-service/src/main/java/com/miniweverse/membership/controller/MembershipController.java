@@ -1,12 +1,15 @@
 package com.miniweverse.membership.controller;
 
 import com.miniweverse.membership.dto.MembershipResponse;
+import com.miniweverse.membership.dto.MyMembershipResponse;
 import com.miniweverse.membership.dto.SubscribeRequest;
 import com.miniweverse.membership.entity.Membership;
 import com.miniweverse.membership.service.MembershipService;
 import jakarta.validation.Valid;
+import java.util.List;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -19,6 +22,13 @@ public class MembershipController {
 
     public MembershipController(MembershipService membershipService) {
         this.membershipService = membershipService;
+    }
+
+    @GetMapping("/memberships")
+    public ResponseEntity<List<MyMembershipResponse>> getMyMemberships(
+            @AuthenticationPrincipal Long subscriberId
+    ) {
+        return ResponseEntity.ok(membershipService.getMyMemberships(subscriberId));
     }
 
     @PostMapping("/memberships")

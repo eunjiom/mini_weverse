@@ -30,4 +30,11 @@ public interface MembershipRepository extends JpaRepository<Membership, Long> {
     Optional<Membership> findByIdForUpdate(@Param("id") Long id);
 
     List<Membership> findByStatusAndExpiresAtBefore(MembershipStatus status, LocalDateTime time);
+
+    /**
+     * open-in-view: false라 트랜잭션 밖(컨트롤러 DTO 매핑)에서 artist에 접근하려면
+     * JOIN FETCH로 미리 로딩해야 한다 (PostRepository와 동일한 이유).
+     */
+    @Query("SELECT m FROM Membership m JOIN FETCH m.artist WHERE m.subscriber.id = :subscriberId ORDER BY m.createdAt DESC")
+    List<Membership> findBySubscriberIdWithArtist(@Param("subscriberId") Long subscriberId);
 }
