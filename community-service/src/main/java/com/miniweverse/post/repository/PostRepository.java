@@ -15,10 +15,12 @@ public interface PostRepository extends JpaRepository<Post, Long> {
 
     /**
      * 수정/삭제 시 본인 확인 및 응답 매핑에 필요한 연관관계까지 미리 로딩한다 (목록 조회 쿼리와 동일한 이유).
+     * author는 LEFT JOIN이다 — INNER JOIN이면 작성자가 탈퇴(User.deletedAt)한 게시글이
+     * User의 {@code @SQLRestriction} 때문에 조회 자체에서 통째로 걸러진다.
      */
     @Query("""
             SELECT p FROM Post p
-            JOIN FETCH p.author
+            LEFT JOIN FETCH p.author
             JOIN FETCH p.artistProfile ap
             JOIN FETCH ap.user
             WHERE p.id = :id
@@ -32,7 +34,7 @@ public interface PostRepository extends JpaRepository<Post, Long> {
      */
     @Query("""
             SELECT p FROM Post p
-            JOIN FETCH p.author
+            LEFT JOIN FETCH p.author
             JOIN FETCH p.artistProfile ap
             JOIN FETCH ap.user
             WHERE p.artistProfile = :artistProfile AND p.boardType = :boardType

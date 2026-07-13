@@ -20,6 +20,8 @@ import java.time.LocalDateTime;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.NotFound;
+import org.hibernate.annotations.NotFoundAction;
 import org.hibernate.annotations.SQLRestriction;
 
 /**
@@ -40,8 +42,13 @@ public class Post extends BaseTimeEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    /**
+     * author가 탈퇴(soft delete)해도 게시글 자체는 남아있어야 하므로, User의
+     * {@code @SQLRestriction}에 걸려 로딩이 안 되는 경우 예외 대신 null로 취급한다.
+     */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "author_id", nullable = false)
+    @NotFound(action = NotFoundAction.IGNORE)
     private User author;
 
     @ManyToOne(fetch = FetchType.LAZY)

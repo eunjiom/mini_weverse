@@ -2,6 +2,7 @@ package com.miniweverse.post.dto;
 
 import com.miniweverse.post.entity.Post;
 import com.miniweverse.post.enums.BoardType;
+import com.miniweverse.user.entity.User;
 import java.time.LocalDateTime;
 
 public record PostResponse(
@@ -13,11 +14,14 @@ public record PostResponse(
         String content,
         LocalDateTime createdAt
 ) {
+    private static final String WITHDRAWN_AUTHOR_NICKNAME = "탈퇴한 사용자";
+
     public static PostResponse from(Post post) {
+        User author = post.getAuthor();
         return new PostResponse(
                 post.getId(),
-                post.getAuthor().getId(),
-                post.getAuthor().getNickname(),
+                author != null ? author.getId() : null,
+                author != null ? author.getNickname() : WITHDRAWN_AUTHOR_NICKNAME,
                 post.getArtistProfile().getUser().getId(),
                 post.getBoardType(),
                 post.getContent(),

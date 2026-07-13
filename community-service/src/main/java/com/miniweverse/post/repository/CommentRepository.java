@@ -14,10 +14,12 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
 
     /**
      * 수정/삭제 시 본인 확인 및 응답 매핑에 필요한 연관관계까지 미리 로딩한다.
+     * author는 LEFT JOIN이다 — INNER JOIN이면 작성자가 탈퇴(User.deletedAt)한 댓글이
+     * User의 {@code @SQLRestriction} 때문에 조회 자체에서 통째로 걸러진다.
      */
     @Query("""
             SELECT c FROM Comment c
-            JOIN FETCH c.author
+            LEFT JOIN FETCH c.author
             JOIN FETCH c.post
             WHERE c.id = :id
             """)
@@ -32,7 +34,7 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
      */
     @Query("""
             SELECT c FROM Comment c
-            JOIN FETCH c.author
+            LEFT JOIN FETCH c.author
             JOIN FETCH c.post
             WHERE c.post = :post
             ORDER BY c.createdAt ASC, c.id ASC

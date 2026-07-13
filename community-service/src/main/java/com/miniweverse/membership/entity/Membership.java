@@ -23,6 +23,8 @@ import java.time.LocalDateTime;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.NotFound;
+import org.hibernate.annotations.NotFoundAction;
 
 /**
  * 아티스트 멤버십(구독) 상태. 결제 연동 없이 이 서비스가 구독/갱신/취소/만료를 직접 소유한다.
@@ -47,8 +49,13 @@ public class Membership extends BaseTimeEntity {
     @JoinColumn(name = "subscriber_id", nullable = false)
     private User subscriber;
 
+    /**
+     * artist가 탈퇴(soft delete)해도 구독 이력 자체는 남아있어야 하므로, User의
+     * {@code @SQLRestriction}에 걸려 로딩이 안 되는 경우 예외 대신 null로 취급한다.
+     */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "artist_id", nullable = false)
+    @NotFound(action = NotFoundAction.IGNORE)
     private User artist;
 
     @Enumerated(EnumType.STRING)

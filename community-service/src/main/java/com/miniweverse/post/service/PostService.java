@@ -62,7 +62,7 @@ public class PostService {
     public Post update(Long postId, Long requesterId, String content) {
         Post post = postRepository.findByIdWithDetails(postId)
                 .orElseThrow(() -> new InvalidRequestException("게시글을 찾을 수 없습니다."));
-        if (!Objects.equals(post.getAuthor().getId(), requesterId)) {
+        if (post.getAuthor() == null || !Objects.equals(post.getAuthor().getId(), requesterId)) {
             throw new InvalidRequestException("본인 게시글만 수정할 수 있습니다.");
         }
         post.updateContent(content);
@@ -74,7 +74,7 @@ public class PostService {
     public void delete(Long postId, Long requesterId) {
         Post post = postRepository.findByIdWithDetails(postId)
                 .orElseThrow(() -> new InvalidRequestException("게시글을 찾을 수 없습니다."));
-        if (!Objects.equals(post.getAuthor().getId(), requesterId)) {
+        if (post.getAuthor() == null || !Objects.equals(post.getAuthor().getId(), requesterId)) {
             throw new InvalidRequestException("본인 게시글만 삭제할 수 있습니다.");
         }
         post.delete();
