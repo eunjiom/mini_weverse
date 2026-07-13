@@ -5,12 +5,25 @@ import com.miniweverse.post.enums.BoardType;
 import com.miniweverse.user.entity.ArtistProfile;
 import com.miniweverse.user.entity.User;
 import java.util.List;
+import java.util.Optional;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 public interface PostRepository extends JpaRepository<Post, Long> {
+
+    /**
+     * 수정/삭제 시 본인 확인 및 응답 매핑에 필요한 연관관계까지 미리 로딩한다 (목록 조회 쿼리와 동일한 이유).
+     */
+    @Query("""
+            SELECT p FROM Post p
+            JOIN FETCH p.author
+            JOIN FETCH p.artistProfile ap
+            JOIN FETCH ap.user
+            WHERE p.id = :id
+            """)
+    Optional<Post> findByIdWithDetails(@Param("id") Long id);
 
     /**
      * open-in-view: false라 컨트롤러에서 지연 로딩 필드(author, artistProfile.user)에 접근하면
