@@ -15,14 +15,17 @@ public interface PostRepository extends JpaRepository<Post, Long> {
 
     /**
      * 수정/삭제 시 본인 확인 및 응답 매핑에 필요한 연관관계까지 미리 로딩한다 (목록 조회 쿼리와 동일한 이유).
-     * author는 LEFT JOIN이다 — INNER JOIN이면 작성자가 탈퇴(User.deletedAt)한 게시글이
-     * User의 {@code @SQLRestriction} 때문에 조회 자체에서 통째로 걸러진다.
+     * author/artistProfile/ap.user 전부 LEFT JOIN이다 — INNER JOIN이면 작성자나 그 게시판 아티스트가
+     * 탈퇴(User/ArtistProfile.deletedAt)했을 때 {@code @SQLRestriction} 때문에, 정작 삭제되지 않은
+     * 게시글까지 조회 자체에서 통째로 걸러진다(예: 아티스트가 탈퇴하면 그 게시판의 다른 팬 게시글도
+     * 전부 "찾을 수 없음"으로 취급되어 정당한 작성자가 자기 글을 수정/삭제할 수 없게 됨).
+     * 목록 조회 쿼리는 artistProfile을 호출부에서 이미 유효성 검증 후 넘겨받아 이 문제가 없다.
      */
     @Query("""
             SELECT p FROM Post p
             LEFT JOIN FETCH p.author
-            JOIN FETCH p.artistProfile ap
-            JOIN FETCH ap.user
+            LEFT JOIN FETCH p.artistProfile ap
+            LEFT JOIN FETCH ap.user
             WHERE p.id = :id
             """)
     Optional<Post> findByIdWithDetails(@Param("id") Long id);

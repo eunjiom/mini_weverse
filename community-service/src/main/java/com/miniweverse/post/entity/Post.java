@@ -51,8 +51,13 @@ public class Post extends BaseTimeEntity {
     @NotFound(action = NotFoundAction.IGNORE)
     private User author;
 
+    /**
+     * artistProfile(및 그 소유주 User)이 탈퇴/삭제돼도 게시글 자체는 남아있어야 하므로,
+     * 예외 대신 null로 취급한다(ArtistProfile/User @SQLRestriction과의 상호작용).
+     */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "artist_profile_id", nullable = false)
+    @NotFound(action = NotFoundAction.IGNORE)
     private ArtistProfile artistProfile;
 
     @Enumerated(EnumType.STRING)
