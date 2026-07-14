@@ -1,7 +1,6 @@
 package com.miniweverse.post.service;
 
 import com.miniweverse.exception.AuthUserExceptions.InvalidRequestException;
-import com.miniweverse.exception.AuthUserExceptions.NotFollowingArtistException;
 import com.miniweverse.follow.repository.FollowRepository;
 import com.miniweverse.post.dto.PostResponse;
 import com.miniweverse.post.entity.Post;
@@ -81,16 +80,10 @@ public class PostService {
 
     @Transactional(readOnly = true)
     public List<PostResponse> getByArtistAndBoardType(
-            Long viewerId, Long artistProfileId, BoardType boardType, int page, int size
+            Long artistProfileId, BoardType boardType, int page, int size
     ) {
         ArtistProfile artistProfile = artistProfileRepository.findById(artistProfileId)
                 .orElseThrow(() -> new InvalidRequestException("아티스트 프로필을 찾을 수 없습니다."));
-
-        User artistUser = artistProfile.getUser();
-        boolean isArtistSelf = artistUser != null && Objects.equals(viewerId, artistUser.getId());
-        if (!isArtistSelf && !followRepository.existsByFollowerAndArtist(viewerId, artistProfileId)) {
-            throw new NotFollowingArtistException();
-        }
 
         // page에는 상한이 없어 int로 계산하면 큰 값에서 오버플로가 날 수 있으므로 long으로 계산한다.
         long offset = (long) page * size;

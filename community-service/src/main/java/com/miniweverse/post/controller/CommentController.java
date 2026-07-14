@@ -44,12 +44,11 @@ public class CommentController {
 
     @GetMapping("/posts/{postId}/comments")
     public ResponseEntity<List<CommentResponse>> list(
-            @AuthenticationPrincipal Long viewerId,
             @PathVariable Long postId,
             @RequestParam(defaultValue = "0") @Min(0) int page,
             @RequestParam(defaultValue = "20") @Min(1) @Max(50) int size
     ) {
-        List<CommentResponse> comments = commentService.getByPost(viewerId, postId, page, size).stream()
+        List<CommentResponse> comments = commentService.getByPost(postId, page, size).stream()
                 .map(CommentResponse::from)
                 .toList();
         return ResponseEntity.ok(comments);

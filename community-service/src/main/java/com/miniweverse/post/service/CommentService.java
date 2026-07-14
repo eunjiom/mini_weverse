@@ -49,11 +49,9 @@ public class CommentService {
     }
 
     @Transactional(readOnly = true)
-    public List<Comment> getByPost(Long viewerId, Long postId, int page, int size) {
+    public List<Comment> getByPost(Long postId, int page, int size) {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new InvalidRequestException("게시글을 찾을 수 없습니다."));
-
-        checkFollowAccess(viewerId, post);
 
         return commentRepository.findByPostOrderByCreatedAtAsc(post, PageRequest.of(page, size));
     }

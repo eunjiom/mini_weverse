@@ -7,6 +7,7 @@ import com.miniweverse.auth.oauth.KakaoLoginSuccessHandler;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -63,6 +64,8 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/signup", "/login", "/reissue", "/logout", "/error", "/oauth2/**", "/login/oauth2/**").permitAll()
+                        // 커뮤니티 라운지 열람(게시글/댓글 목록 조회)은 로그인 없이 공개한다 — 작성은 permitAll 대상이 아니라 그대로 인증이 필요하다.
+                        .requestMatchers(HttpMethod.GET, "/artists/*/posts", "/posts/*/comments").permitAll()
                         .anyRequest().authenticated())
                 .exceptionHandling(ex -> ex.authenticationEntryPoint(jwtAuthenticationEntryPoint))
                 .oauth2Login(oauth2 -> oauth2.successHandler(kakaoLoginSuccessHandler))

@@ -45,13 +45,12 @@ public class PostController {
 
     @GetMapping("/artists/{artistId}/posts")
     public ResponseEntity<List<PostResponse>> list(
-            @AuthenticationPrincipal Long viewerId,
             @PathVariable Long artistId,
             @RequestParam BoardType boardType,
             @RequestParam(defaultValue = "0") @Min(0) int page,
             @RequestParam(defaultValue = "20") @Min(1) @Max(50) int size
     ) {
-        List<PostResponse> posts = postService.getByArtistAndBoardType(viewerId, artistId, boardType, page, size);
+        List<PostResponse> posts = postService.getByArtistAndBoardType(artistId, boardType, page, size);
         return ResponseEntity.ok(posts);
     }
 
