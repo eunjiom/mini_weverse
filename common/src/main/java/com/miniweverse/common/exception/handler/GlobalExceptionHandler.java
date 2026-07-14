@@ -1,6 +1,7 @@
-package com.miniweverse.exception.handler;
+package com.miniweverse.common.exception.handler;
 
 import com.miniweverse.common.exception.BusinessException;
+import com.miniweverse.common.exception.CommonErrorCode;
 import com.miniweverse.common.exception.ErrorCode;
 import com.miniweverse.common.response.ApiResponse;
 import jakarta.validation.ConstraintViolationException;
@@ -10,10 +11,12 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+/**
+ * common 모듈 소유 타입(BusinessException/ErrorCode/ApiResponse)에만 의존해서 서비스별
+ * 재구현 없이 여러 서비스가 그대로 재사용할 수 있다.
+ */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
-
-    private static final String VALIDATION_ERROR_CODE = "VALIDATION_ERROR";
 
     @ExceptionHandler(BusinessException.class)
     public ResponseEntity<ApiResponse<Void>> handleBusinessException(BusinessException e) {
@@ -27,8 +30,8 @@ public class GlobalExceptionHandler {
         String message = e.getBindingResult().getFieldErrors().stream()
                 .map(fieldError -> fieldError.getField() + ": " + fieldError.getDefaultMessage())
                 .collect(Collectors.joining(", "));
-        return ResponseEntity.badRequest()
-                .body(ApiResponse.error(VALIDATION_ERROR_CODE, message));
+        return ResponseEntity.status(CommonErrorCode.VALIDATION_ERROR.getHttpStatus())
+                .body(ApiResponse.error(CommonErrorCode.VALIDATION_ERROR.getCode(), message));
     }
 
     /**
@@ -40,7 +43,13 @@ public class GlobalExceptionHandler {
         String message = e.getConstraintViolations().stream()
                 .map(violation -> violation.getPropertyPath() + ": " + violation.getMessage())
                 .collect(Collectors.joining(", "));
-        return ResponseEntity.badRequest()
-                .body(ApiResponse.error(VALIDATION_ERROR_CODE, message));
+        return ResponseEntity.status(CommonErrorCode.VALIDATION_ERROR.getHttpStatus())
+                .body(ApiResponse.error(CommonErrorCode.VALIDATION_ERROR.getCode(), message));
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ApiResponse<Void>> handleException(Exception e) {
+        return ResponseEntity.status(CommonErrorCode.INTERNAL_SERVER_ERROR.getHttpStatus())
+                .body(ApiResponse.error(CommonErrorCode.INTERNAL_SERVER_ERROR));
     }
 }
