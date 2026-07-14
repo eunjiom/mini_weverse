@@ -55,6 +55,12 @@ public class PostService {
         return post;
     }
 
+    @Transactional(readOnly = true)
+    public Post getById(Long postId) {
+        return postRepository.findByIdWithDetails(postId)
+                .orElseThrow(() -> new InvalidRequestException("게시글을 찾을 수 없습니다."));
+    }
+
     @Transactional
     public Post update(Long postId, Long requesterId, String content) {
         Post post = postRepository.findByIdWithDetails(postId)

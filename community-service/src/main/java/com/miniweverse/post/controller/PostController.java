@@ -54,6 +54,12 @@ public class PostController {
         return ResponseEntity.ok(posts);
     }
 
+    @GetMapping("/posts/{postId}")
+    public ResponseEntity<PostResponse> get(@PathVariable Long postId) {
+        Post post = postService.getById(postId);
+        return ResponseEntity.ok(PostResponse.from(post));
+    }
+
     @PatchMapping("/posts/{postId}")
     public ResponseEntity<PostResponse> update(
             @AuthenticationPrincipal Long requesterId,

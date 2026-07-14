@@ -65,7 +65,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/signup", "/login", "/reissue", "/logout", "/error", "/oauth2/**", "/login/oauth2/**").permitAll()
                         // 커뮤니티 라운지 열람(게시글/댓글 목록 조회)은 로그인 없이 공개한다 — 작성은 permitAll 대상이 아니라 그대로 인증이 필요하다.
-                        .requestMatchers(HttpMethod.GET, "/artists/*/posts", "/posts/*/comments").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/artists/*/posts", "/posts/*", "/posts/*/comments").permitAll()
                         .anyRequest().authenticated())
                 .exceptionHandling(ex -> ex.authenticationEntryPoint(jwtAuthenticationEntryPoint))
                 .oauth2Login(oauth2 -> oauth2.successHandler(kakaoLoginSuccessHandler))
