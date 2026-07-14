@@ -2,8 +2,10 @@ package com.miniweverse.post.service;
 
 import com.miniweverse.common.response.CursorPageResponse;
 import com.miniweverse.exception.AuthUserExceptions.InvalidRequestException;
+import com.miniweverse.exception.AuthUserExceptions.MembershipRequiredException;
 import com.miniweverse.exception.AuthUserExceptions.NotFollowingArtistException;
 import com.miniweverse.follow.repository.FollowRepository;
+import com.miniweverse.membership.repository.MembershipRepository;
 import com.miniweverse.post.dto.CommentResponse;
 import com.miniweverse.post.entity.Comment;
 import com.miniweverse.post.entity.Post;
@@ -11,6 +13,7 @@ import com.miniweverse.post.repository.CommentRepository;
 import com.miniweverse.post.repository.PostRepository;
 import com.miniweverse.user.entity.ArtistProfile;
 import com.miniweverse.user.entity.User;
+import com.miniweverse.user.enums.MembershipStatus;
 import com.miniweverse.user.repository.UserRepository;
 import java.util.List;
 import java.util.Objects;
@@ -25,17 +28,20 @@ public class CommentService {
     private final PostRepository postRepository;
     private final UserRepository userRepository;
     private final FollowRepository followRepository;
+    private final MembershipRepository membershipRepository;
 
     public CommentService(
             CommentRepository commentRepository,
             PostRepository postRepository,
             UserRepository userRepository,
-            FollowRepository followRepository
+            FollowRepository followRepository,
+            MembershipRepository membershipRepository
     ) {
         this.commentRepository = commentRepository;
         this.postRepository = postRepository;
         this.userRepository = userRepository;
         this.followRepository = followRepository;
+        this.membershipRepository = membershipRepository;
     }
 
     @Transactional
@@ -46,14 +52,17 @@ public class CommentService {
                 .orElseThrow(() -> new InvalidRequestException("게시글을 찾을 수 없습니다."));
 
         checkFollowAccess(authorId, post);
+        checkMembershipAccess(authorId, post);
 
         return commentRepository.save(Comment.create(post, author, content));
     }
 
     @Transactional(readOnly = true)
-    public CursorPageResponse<CommentResponse> getByPost(Long postId, Long cursor, int size) {
+    public CursorPageResponse<CommentResponse> getByPost(Long viewerId, Long postId, Long cursor, int size) {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new InvalidRequestException("게시글을 찾을 수 없습니다."));
+
+        checkMembershipAccess(viewerId, post);
 
         List<CommentResponse> fetched = commentRepository.findByPostAndCursor(post, cursor, PageRequest.of(0, size + 1))
                 .stream()
@@ -94,6 +103,24 @@ public class CommentService {
         boolean isArtistSelf = Objects.equals(viewerId, artistUser.getId());
         if (!isArtistSelf && !followRepository.existsByFollowerAndArtist(viewerId, artistProfile.getId())) {
             throw new NotFollowingArtistException();
+        }
+    }
+
+    /**
+     * 게시글이 멤버십 전용이면, 그 댓글도 본문을 볼 수 있는 사람(본인 또는 활성 구독자)만
+     * 보거나 달 수 있다 — 본문은 잠겨있는데 댓글 토론만 공개되는 건 앞뒤가 안 맞는다는 판단.
+     */
+    private void checkMembershipAccess(Long viewerId, Post post) {
+        if (!post.isMembersOnly()) {
+            return;
+        }
+        ArtistProfile artistProfile = post.getArtistProfile();
+        User artistUser = artistProfile != null ? artistProfile.getUser() : null;
+        boolean isArtistSelf = artistUser != null && Objects.equals(viewerId, artistUser.getId());
+        boolean isSubscriber = viewerId != null && artistProfile != null
+                && membershipRepository.existsBySubscriberIdAndArtistAndStatus(viewerId, artistProfile, MembershipStatus.ACTIVE);
+        if (!isArtistSelf && !isSubscriber) {
+            throw new MembershipRequiredException();
         }
     }
 }

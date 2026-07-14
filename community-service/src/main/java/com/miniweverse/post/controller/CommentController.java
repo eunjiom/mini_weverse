@@ -44,11 +44,12 @@ public class CommentController {
 
     @GetMapping("/posts/{postId}/comments")
     public ResponseEntity<CursorPageResponse<CommentResponse>> list(
+            @AuthenticationPrincipal Long viewerId,
             @PathVariable Long postId,
             @RequestParam(required = false) Long cursor,
             @RequestParam(defaultValue = "20") @Min(1) @Max(50) int size
     ) {
-        return ResponseEntity.ok(commentService.getByPost(postId, cursor, size));
+        return ResponseEntity.ok(commentService.getByPost(viewerId, postId, cursor, size));
     }
 
     @PatchMapping("/comments/{commentId}")
