@@ -74,7 +74,7 @@ public class CommentService {
         if (comment.getAuthor() == null || !Objects.equals(comment.getAuthor().getId(), requesterId)) {
             throw new InvalidRequestException("본인 댓글만 삭제할 수 있습니다.");
         }
-        commentRepository.delete(comment);
+        comment.delete();
     }
 
     private void checkFollowAccess(Long viewerId, Post post) {
