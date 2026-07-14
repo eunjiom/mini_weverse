@@ -14,7 +14,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS uk_artist_profiles_user_id
 -- (follower_id, artist_id) 자체가 이 관계의 유일한 식별자라 별도 surrogate id 없이 복합 PK로 둔다.
 CREATE TABLE IF NOT EXISTS follows (
     follower_id BIGINT NOT NULL REFERENCES users (id),
-    artist_id BIGINT NOT NULL REFERENCES users (id),
+    artist_id BIGINT NOT NULL REFERENCES artist_profiles (id),
     created_at TIMESTAMP(6) NOT NULL,
     updated_at TIMESTAMP(6) NOT NULL,
     PRIMARY KEY (follower_id, artist_id),

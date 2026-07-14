@@ -16,16 +16,16 @@ public class FollowRepository {
     }
 
     /**
-     * 아티스트 프로필이 아직 없는 ARTIST 유저도(프로필 생성 API 미구현) 목록에서 빠지지 않도록
-     * artist_profiles는 LEFT JOIN한다 — 이 경우 category는 null로 내려간다.
+     * follows.artist_id는 이제 artist_profiles.id를 직접 참조하는 FK라, "프로필 없는 ARTIST
+     * 유저를 팔로우한 경우"는 구조적으로 존재할 수 없다 — artist_profiles는 INNER JOIN으로 충분하다.
      */
     public List<FollowedArtistResponse> findFollowedArtists(Long followerId) {
         return jdbcTemplate.query(
                 """
                 SELECT f.artist_id AS artist_id, u.nickname AS nickname, ap.category AS category
                 FROM follows f
-                JOIN users u ON u.id = f.artist_id AND u.deleted_at IS NULL
-                LEFT JOIN artist_profiles ap ON ap.user_id = f.artist_id AND ap.deleted_at IS NULL
+                JOIN artist_profiles ap ON ap.id = f.artist_id AND ap.deleted_at IS NULL
+                JOIN users u ON u.id = ap.user_id AND u.deleted_at IS NULL
                 WHERE f.follower_id = ?
                 ORDER BY f.created_at DESC
                 """,

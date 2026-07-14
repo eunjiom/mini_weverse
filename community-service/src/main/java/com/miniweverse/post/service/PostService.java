@@ -41,15 +41,13 @@ public class PostService {
     }
 
     @Transactional
-    public Post create(Long authorId, Long artistUserId, BoardType boardType, String content) {
+    public Post create(Long authorId, Long artistProfileId, BoardType boardType, String content) {
         User author = userRepository.findById(authorId)
                 .orElseThrow(() -> new InvalidRequestException("작성자 정보를 찾을 수 없습니다."));
-        User artistUser = userRepository.findById(artistUserId)
-                .orElseThrow(() -> new InvalidRequestException("아티스트 정보를 찾을 수 없습니다."));
-        ArtistProfile artistProfile = artistProfileRepository.findByUser(artistUser)
+        ArtistProfile artistProfile = artistProfileRepository.findById(artistProfileId)
                 .orElseThrow(() -> new InvalidRequestException("아티스트 프로필을 찾을 수 없습니다."));
 
-        if (boardType == BoardType.FEED && !followRepository.existsByFollowerAndArtist(author.getId(), artistUser.getId())) {
+        if (boardType == BoardType.FEED && !followRepository.existsByFollowerAndArtist(author.getId(), artistProfileId)) {
             throw new InvalidRequestException("팔로우한 아티스트의 피드 게시판에만 글을 작성할 수 있습니다.");
         }
 
@@ -83,15 +81,14 @@ public class PostService {
 
     @Transactional(readOnly = true)
     public List<PostResponse> getByArtistAndBoardType(
-            Long viewerId, Long artistUserId, BoardType boardType, int page, int size
+            Long viewerId, Long artistProfileId, BoardType boardType, int page, int size
     ) {
-        User artistUser = userRepository.findById(artistUserId)
-                .orElseThrow(() -> new InvalidRequestException("아티스트 정보를 찾을 수 없습니다."));
-        ArtistProfile artistProfile = artistProfileRepository.findByUser(artistUser)
+        ArtistProfile artistProfile = artistProfileRepository.findById(artistProfileId)
                 .orElseThrow(() -> new InvalidRequestException("아티스트 프로필을 찾을 수 없습니다."));
 
-        boolean isArtistSelf = Objects.equals(viewerId, artistUserId);
-        if (!isArtistSelf && !followRepository.existsByFollowerAndArtist(viewerId, artistUserId)) {
+        User artistUser = artistProfile.getUser();
+        boolean isArtistSelf = artistUser != null && Objects.equals(viewerId, artistUser.getId());
+        if (!isArtistSelf && !followRepository.existsByFollowerAndArtist(viewerId, artistProfileId)) {
             throw new NotFollowingArtistException();
         }
 

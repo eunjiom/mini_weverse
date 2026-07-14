@@ -35,13 +35,10 @@ public class MembershipService {
     }
 
     @Transactional
-    public Membership subscribe(Long subscriberId, Long artistId) {
+    public Membership subscribe(Long subscriberId, Long artistProfileId) {
         User subscriber = userRepository.findById(subscriberId)
                 .orElseThrow(() -> new InvalidRequestException("구독자 정보를 찾을 수 없습니다."));
-        User artist = userRepository.findById(artistId)
-                .orElseThrow(() -> new InvalidRequestException("아티스트 정보를 찾을 수 없습니다."));
-
-        ArtistProfile artistProfile = artistProfileRepository.findByUser(artist)
+        ArtistProfile artistProfile = artistProfileRepository.findById(artistProfileId)
                 .orElseThrow(() -> new InvalidRequestException("아티스트 프로필을 찾을 수 없습니다."));
         if (artistProfile.getCategory() == ArtistCategory.MEMBER) {
             throw new InvalidRequestException("그룹 멤버는 구독할 수 없습니다. 그룹 또는 솔로 아티스트만 구독 가능합니다.");
@@ -50,15 +47,15 @@ public class MembershipService {
         // findBySubscriberAndArtist는 PESSIMISTIC_WRITE 락을 걸기 때문에, 동시에 들어온
         // 같은 (subscriber, artist) 요청은 여기서 순서대로 직렬화된다.
         LocalDateTime now = LocalDateTime.now();
-        return membershipRepository.findBySubscriberAndArtist(subscriber, artist)
+        return membershipRepository.findBySubscriberAndArtist(subscriber, artistProfile)
                 .map(membership -> {
                     membership.renew(now);
                     return membership;
                 })
-                .orElseGet(() -> createOrRenew(subscriber, artist, now));
+                .orElseGet(() -> createOrRenew(subscriber, artistProfile, now));
     }
 
-    private Membership createOrRenew(User subscriber, User artist, LocalDateTime now) {
+    private Membership createOrRenew(User subscriber, ArtistProfile artist, LocalDateTime now) {
         try {
             return membershipRepository.save(
                     Membership.create(subscriber, artist, MembershipStatus.ACTIVE, now.plusMonths(1)));

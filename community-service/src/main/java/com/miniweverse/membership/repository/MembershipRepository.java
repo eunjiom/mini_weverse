@@ -1,6 +1,7 @@
 package com.miniweverse.membership.repository;
 
 import com.miniweverse.membership.entity.Membership;
+import com.miniweverse.user.entity.ArtistProfile;
 import com.miniweverse.user.entity.User;
 import com.miniweverse.user.enums.MembershipStatus;
 import jakarta.persistence.LockModeType;
@@ -19,7 +20,7 @@ public interface MembershipRepository extends JpaRepository<Membership, Long> {
      * 먼저 들어온 트랜잭션이 커밋될 때까지 나중 요청은 대기했다가 갱신 후 상태를 이어받는다.
      */
     @Lock(LockModeType.PESSIMISTIC_WRITE)
-    Optional<Membership> findBySubscriberAndArtist(User subscriber, User artist);
+    Optional<Membership> findBySubscriberAndArtist(User subscriber, ArtistProfile artist);
 
     /**
      * 같은 구독 건에 대한 동시 취소 요청을 직렬화하기 위해 비관적 락을 건다.

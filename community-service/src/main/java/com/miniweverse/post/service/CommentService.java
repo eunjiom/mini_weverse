@@ -7,6 +7,7 @@ import com.miniweverse.post.entity.Comment;
 import com.miniweverse.post.entity.Post;
 import com.miniweverse.post.repository.CommentRepository;
 import com.miniweverse.post.repository.PostRepository;
+import com.miniweverse.user.entity.ArtistProfile;
 import com.miniweverse.user.entity.User;
 import com.miniweverse.user.repository.UserRepository;
 import java.util.List;
@@ -81,13 +82,13 @@ public class CommentService {
     private void checkFollowAccess(Long viewerId, Post post) {
         // artistProfile 또는 그 소유주 User가 탈퇴했으면(@NotFound(IGNORE)로 null 처리됨) 아티스트를
         // 특정할 수 없으므로, 팔로우 여부를 판단하지 못하고 명확한 에러로 막는다(NPE 대신).
-        User artistUser = post.getArtistProfile() != null ? post.getArtistProfile().getUser() : null;
+        ArtistProfile artistProfile = post.getArtistProfile();
+        User artistUser = artistProfile != null ? artistProfile.getUser() : null;
         if (artistUser == null) {
             throw new InvalidRequestException("아티스트 정보를 찾을 수 없습니다.");
         }
-        Long artistUserId = artistUser.getId();
-        boolean isArtistSelf = Objects.equals(viewerId, artistUserId);
-        if (!isArtistSelf && !followRepository.existsByFollowerAndArtist(viewerId, artistUserId)) {
+        boolean isArtistSelf = Objects.equals(viewerId, artistUser.getId());
+        if (!isArtistSelf && !followRepository.existsByFollowerAndArtist(viewerId, artistProfile.getId())) {
             throw new NotFollowingArtistException();
         }
     }
