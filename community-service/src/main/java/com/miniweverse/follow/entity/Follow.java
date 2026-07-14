@@ -37,7 +37,8 @@ public class Follow {
         if (artistUser == null) {
             throw new InvalidRequestException("아티스트 정보를 찾을 수 없습니다.");
         }
-        boolean isSelfFollow = follower.getId() != null && Objects.equals(follower.getId(), artistUser.getId());
+        boolean isSelfFollow = follower == artistUser
+                || (follower.getId() != null && Objects.equals(follower.getId(), artistUser.getId()));
         if (isSelfFollow) {
             throw new SelfFollowNotAllowedException();
         }

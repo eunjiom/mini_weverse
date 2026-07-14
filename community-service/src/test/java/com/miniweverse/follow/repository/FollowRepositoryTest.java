@@ -3,8 +3,11 @@ package com.miniweverse.follow.repository;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.miniweverse.support.PostgresTestSupport;
+import com.miniweverse.user.entity.ArtistProfile;
 import com.miniweverse.user.entity.User;
+import com.miniweverse.user.enums.ArtistCategory;
 import com.miniweverse.user.enums.Role;
+import com.miniweverse.user.repository.ArtistProfileRepository;
 import com.miniweverse.user.repository.UserRepository;
 import javax.sql.DataSource;
 import org.junit.jupiter.api.BeforeEach;
@@ -27,6 +30,9 @@ class FollowRepositoryTest extends PostgresTestSupport {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private ArtistProfileRepository artistProfileRepository;
+
     private FollowRepository followRepository;
 
     @BeforeEach
@@ -37,7 +43,9 @@ class FollowRepositoryTest extends PostgresTestSupport {
     @Test
     void 같은_대상을_중복_팔로우하면_유니크_제약_위반() {
         User follower = userRepository.saveAndFlush(User.createLocal("follower@test.com", "pw", "follower", Role.FAN));
-        User artist = userRepository.saveAndFlush(User.createLocal("artist@test.com", "pw", "artist", Role.ARTIST));
+        User artistUser = userRepository.saveAndFlush(User.createLocal("artist@test.com", "pw", "artist", Role.ARTIST));
+        ArtistProfile artist = artistProfileRepository.saveAndFlush(
+                ArtistProfile.create(artistUser, "channel", null, ArtistCategory.SOLO, null, null));
 
         followRepository.insert(follower.getId(), artist.getId());
 

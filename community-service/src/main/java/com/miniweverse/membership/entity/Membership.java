@@ -83,7 +83,8 @@ public class Membership extends BaseTimeEntity {
         if (artistUser == null) {
             throw new InvalidRequestException("아티스트 정보를 찾을 수 없습니다.");
         }
-        boolean isSelfSubscription = subscriber.getId() != null && Objects.equals(subscriber.getId(), artistUser.getId());
+        boolean isSelfSubscription = subscriber == artistUser
+                || (subscriber.getId() != null && Objects.equals(subscriber.getId(), artistUser.getId()));
         if (isSelfSubscription) {
             throw new InvalidRequestException("자기 자신을 구독할 수 없습니다.");
         }
