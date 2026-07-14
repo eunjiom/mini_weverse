@@ -1,6 +1,7 @@
 package com.miniweverse.membership.dto;
 
 import com.miniweverse.membership.entity.Membership;
+import com.miniweverse.user.entity.ArtistProfile;
 import com.miniweverse.user.entity.User;
 import java.time.LocalDateTime;
 
@@ -14,11 +15,12 @@ public record MyMembershipResponse(
     private static final String WITHDRAWN_ARTIST_NICKNAME = "탈퇴한 아티스트";
 
     public static MyMembershipResponse from(Membership membership) {
-        User artist = membership.getArtist();
+        ArtistProfile artist = membership.getArtist();
+        User artistUser = artist != null ? artist.getUser() : null;
         return new MyMembershipResponse(
                 membership.getId(),
                 artist != null ? artist.getId() : null,
-                artist != null ? artist.getNickname() : WITHDRAWN_ARTIST_NICKNAME,
+                artistUser != null ? artistUser.getNickname() : WITHDRAWN_ARTIST_NICKNAME,
                 membership.getStatus().name(),
                 membership.getExpiresAt()
         );

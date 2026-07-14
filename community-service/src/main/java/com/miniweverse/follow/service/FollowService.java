@@ -5,7 +5,9 @@ import com.miniweverse.exception.AuthUserExceptions.InvalidRequestException;
 import com.miniweverse.follow.dto.FollowedArtistResponse;
 import com.miniweverse.follow.entity.Follow;
 import com.miniweverse.follow.repository.FollowRepository;
+import com.miniweverse.user.entity.ArtistProfile;
 import com.miniweverse.user.entity.User;
+import com.miniweverse.user.repository.ArtistProfileRepository;
 import com.miniweverse.user.repository.UserRepository;
 import java.util.List;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -17,25 +19,31 @@ public class FollowService {
 
     private final FollowRepository followRepository;
     private final UserRepository userRepository;
+    private final ArtistProfileRepository artistProfileRepository;
 
-    public FollowService(FollowRepository followRepository, UserRepository userRepository) {
+    public FollowService(
+            FollowRepository followRepository,
+            UserRepository userRepository,
+            ArtistProfileRepository artistProfileRepository
+    ) {
         this.followRepository = followRepository;
         this.userRepository = userRepository;
+        this.artistProfileRepository = artistProfileRepository;
     }
 
     @Transactional
-    public void follow(Long followerId, Long artistId) {
+    public void follow(Long followerId, Long artistProfileId) {
         User follower = userRepository.findById(followerId)
                 .orElseThrow(() -> new InvalidRequestException("유저 정보를 찾을 수 없습니다."));
-        User artist = userRepository.findById(artistId)
-                .orElseThrow(() -> new InvalidRequestException("아티스트 정보를 찾을 수 없습니다."));
+        ArtistProfile artist = artistProfileRepository.findById(artistProfileId)
+                .orElseThrow(() -> new InvalidRequestException("아티스트 프로필을 찾을 수 없습니다."));
         Follow.create(follower, artist);
 
-        if (followRepository.existsByFollowerAndArtist(followerId, artistId)) {
+        if (followRepository.existsByFollowerAndArtist(followerId, artistProfileId)) {
             throw new DuplicateFollowException();
         }
         try {
-            followRepository.insert(followerId, artistId);
+            followRepository.insert(followerId, artistProfileId);
         } catch (DataIntegrityViolationException e) {
             // 동시 요청으로 중복 확인을 통과한 뒤 유니크 제약에서 걸린 경우.
             throw new DuplicateFollowException();

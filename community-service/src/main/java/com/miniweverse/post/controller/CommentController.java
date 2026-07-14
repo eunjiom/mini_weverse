@@ -1,5 +1,6 @@
 package com.miniweverse.post.controller;
 
+import com.miniweverse.common.response.CursorPageResponse;
 import com.miniweverse.post.dto.CommentCreateRequest;
 import com.miniweverse.post.dto.CommentResponse;
 import com.miniweverse.post.dto.CommentUpdateRequest;
@@ -8,7 +9,6 @@ import com.miniweverse.post.service.CommentService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
-import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -43,16 +43,23 @@ public class CommentController {
     }
 
     @GetMapping("/posts/{postId}/comments")
-    public ResponseEntity<List<CommentResponse>> list(
+    public ResponseEntity<CursorPageResponse<CommentResponse>> list(
             @AuthenticationPrincipal Long viewerId,
             @PathVariable Long postId,
-            @RequestParam(defaultValue = "0") @Min(0) int page,
+            @RequestParam(required = false) Long cursor,
             @RequestParam(defaultValue = "20") @Min(1) @Max(50) int size
     ) {
-        List<CommentResponse> comments = commentService.getByPost(viewerId, postId, page, size).stream()
-                .map(CommentResponse::from)
-                .toList();
-        return ResponseEntity.ok(comments);
+        return ResponseEntity.ok(commentService.getByPost(viewerId, postId, cursor, size));
+    }
+
+    @GetMapping("/users/{userId}/comments")
+    public ResponseEntity<CursorPageResponse<CommentResponse>> listByAuthor(
+            @AuthenticationPrincipal Long viewerId,
+            @PathVariable Long userId,
+            @RequestParam(required = false) Long cursor,
+            @RequestParam(defaultValue = "20") @Min(1) @Max(50) int size
+    ) {
+        return ResponseEntity.ok(commentService.getByAuthor(viewerId, userId, cursor, size));
     }
 
     @PatchMapping("/comments/{commentId}")

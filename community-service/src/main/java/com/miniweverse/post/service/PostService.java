@@ -1,14 +1,17 @@
 package com.miniweverse.post.service;
 
+import com.miniweverse.common.response.CursorPageResponse;
 import com.miniweverse.exception.AuthUserExceptions.InvalidRequestException;
-import com.miniweverse.exception.AuthUserExceptions.NotFollowingArtistException;
+import com.miniweverse.exception.AuthUserExceptions.MembershipRequiredException;
 import com.miniweverse.follow.repository.FollowRepository;
+import com.miniweverse.membership.repository.MembershipRepository;
 import com.miniweverse.post.dto.PostResponse;
 import com.miniweverse.post.entity.Post;
 import com.miniweverse.post.enums.BoardType;
 import com.miniweverse.post.repository.PostRepository;
 import com.miniweverse.user.entity.ArtistProfile;
 import com.miniweverse.user.entity.User;
+import com.miniweverse.user.enums.MembershipStatus;
 import com.miniweverse.user.repository.ArtistProfileRepository;
 import com.miniweverse.user.repository.UserRepository;
 import java.util.List;
@@ -24,6 +27,7 @@ public class PostService {
     private final UserRepository userRepository;
     private final ArtistProfileRepository artistProfileRepository;
     private final FollowRepository followRepository;
+    private final MembershipRepository membershipRepository;
     private final PostCacheService postCacheService;
 
     public PostService(
@@ -31,31 +35,46 @@ public class PostService {
             UserRepository userRepository,
             ArtistProfileRepository artistProfileRepository,
             FollowRepository followRepository,
+            MembershipRepository membershipRepository,
             PostCacheService postCacheService
     ) {
         this.postRepository = postRepository;
         this.userRepository = userRepository;
         this.artistProfileRepository = artistProfileRepository;
         this.followRepository = followRepository;
+        this.membershipRepository = membershipRepository;
         this.postCacheService = postCacheService;
     }
 
     @Transactional
-    public Post create(Long authorId, Long artistUserId, BoardType boardType, String content) {
+    public Post create(Long authorId, Long artistProfileId, BoardType boardType, String content, boolean membersOnly) {
         User author = userRepository.findById(authorId)
                 .orElseThrow(() -> new InvalidRequestException("작성자 정보를 찾을 수 없습니다."));
-        User artistUser = userRepository.findById(artistUserId)
-                .orElseThrow(() -> new InvalidRequestException("아티스트 정보를 찾을 수 없습니다."));
-        ArtistProfile artistProfile = artistProfileRepository.findByUser(artistUser)
+        ArtistProfile artistProfile = artistProfileRepository.findById(artistProfileId)
                 .orElseThrow(() -> new InvalidRequestException("아티스트 프로필을 찾을 수 없습니다."));
 
-        if (boardType == BoardType.FEED && !followRepository.existsByFollowerAndArtist(author.getId(), artistUser.getId())) {
+        if (boardType == BoardType.FEED && !followRepository.existsByFollowerAndArtist(author.getId(), artistProfileId)) {
             throw new InvalidRequestException("팔로우한 아티스트의 피드 게시판에만 글을 작성할 수 있습니다.");
         }
 
-        Post post = postRepository.save(Post.create(author, artistProfile, boardType, content));
+        Post post = postRepository.save(Post.create(author, artistProfile, boardType, content, membersOnly));
         postCacheService.evictPosts(artistProfile, boardType);
         return post;
+    }
+
+    /**
+     * 목록과 달리 단건 조회에서 멤버십 전용 글에 접근 권한이 없으면 마스킹된 값을 주지 않고
+     * 바로 403(MEMBERSHIP_REQUIRED)으로 막는다 — 목록에서 이미 잠긴 글인 걸 보여준 뒤라, 단건
+     * 조회는 "그래서 볼 수 있냐 없냐"를 명확히 알려주는 편이 낫다고 판단했다.
+     */
+    @Transactional(readOnly = true)
+    public PostResponse getById(Long viewerId, Long postId) {
+        Post post = postRepository.findByIdWithDetails(postId)
+                .orElseThrow(() -> new InvalidRequestException("게시글을 찾을 수 없습니다."));
+        if (post.isMembersOnly() && !hasFullAccess(viewerId, post.getArtistProfile())) {
+            throw new MembershipRequiredException();
+        }
+        return PostResponse.from(post);
     }
 
     @Transactional
@@ -81,40 +100,80 @@ public class PostService {
         postCacheService.evictPosts(post.getArtistProfile(), post.getBoardType());
     }
 
+    /**
+     * 첫 페이지(cursor=null)는 캐시(최근 {@link PostCacheService#CACHE_CAPACITY}개)에서 서빙하고,
+     * 그 이후 페이지(cursor 있음)는 캐시를 거치지 않고 DB에서 직접 조회한다. 무한스크롤 트래픽은
+     * 진입 시점(첫 페이지)에 몰리고 그 이후 스크롤은 유저마다 시점이 갈려 분산되므로, 모든 페이지를
+     * 캐시와 맞물려 처리하는 복잡도를 들이지 않아도 충분하다고 판단했다.
+     */
     @Transactional(readOnly = true)
-    public List<PostResponse> getByArtistAndBoardType(
-            Long viewerId, Long artistUserId, BoardType boardType, int page, int size
+    public CursorPageResponse<PostResponse> getByArtistAndBoardType(
+            Long viewerId, Long artistProfileId, BoardType boardType, Long cursor, int size
     ) {
-        User artistUser = userRepository.findById(artistUserId)
-                .orElseThrow(() -> new InvalidRequestException("아티스트 정보를 찾을 수 없습니다."));
-        ArtistProfile artistProfile = artistProfileRepository.findByUser(artistUser)
+        ArtistProfile artistProfile = artistProfileRepository.findById(artistProfileId)
                 .orElseThrow(() -> new InvalidRequestException("아티스트 프로필을 찾을 수 없습니다."));
 
-        boolean isArtistSelf = Objects.equals(viewerId, artistUserId);
-        if (!isArtistSelf && !followRepository.existsByFollowerAndArtist(viewerId, artistUserId)) {
-            throw new NotFollowingArtistException();
+        boolean hasFullAccess = hasFullAccess(viewerId, artistProfile);
+
+        List<PostResponse> fetched;
+        if (cursor == null) {
+            fetched = postCacheService.getCachedPosts(artistProfile, boardType);
+        } else {
+            fetched = postRepository.findByArtistProfileAndBoardTypeAndCursor(
+                            artistProfile, boardType, cursor, PageRequest.of(0, size + 1))
+                    .stream()
+                    .map(PostResponse::from)
+                    .toList();
         }
 
-        // page에는 상한이 없어 int로 계산하면 큰 값에서 오버플로가 날 수 있으므로 long으로 계산한다.
-        long offset = (long) page * size;
-        if (offset >= 0 && offset + size <= PostCacheService.CACHE_CAPACITY) {
-            List<PostResponse> cached = postCacheService.getCachedPosts(artistProfile, boardType);
-            int fromIndex = Math.min((int) offset, cached.size());
-            int toIndex = Math.min((int) (offset + size), cached.size());
-            return cached.subList(fromIndex, toIndex);
-        }
+        List<PostResponse> masked = fetched.stream()
+                .map(response -> response.membersOnly() && !hasFullAccess ? response.mask() : response)
+                .toList();
+        return CursorPageResponse.of(masked, size, PostResponse::postId);
+    }
 
-        // JPA의 Query.setFirstResult(int)는 offset이 Integer.MAX_VALUE를 넘으면 예외를 던진다.
-        // 그 범위를 벗어나는 페이지는 실제로 존재할 수 없는 데이터이므로 조회 없이 빈 목록을 반환한다.
-        if (offset > Integer.MAX_VALUE) {
-            return List.of();
+    /**
+     * 멤버십 전용 글을 잠금 없이 볼 수 있는지 — 본인(아티스트) 또는 활성 구독자면 true.
+     * artistProfile이 null(작성 당시 아티스트가 이미 탈퇴 등)이면 판단 불가하므로 접근을 허용하지 않는다.
+     */
+    private boolean hasFullAccess(Long viewerId, ArtistProfile artistProfile) {
+        if (viewerId == null || artistProfile == null) {
+            return false;
         }
+        User artistUser = artistProfile.getUser();
+        if (artistUser != null && Objects.equals(viewerId, artistUser.getId())) {
+            return true;
+        }
+        return membershipRepository.existsBySubscriberIdAndArtistAndStatus(viewerId, artistProfile, MembershipStatus.ACTIVE);
+    }
 
-        // 캐시 범위(최근 CACHE_CAPACITY개)를 벗어난 페이지는 캐시를 거치지 않고 DB에서 직접 조회한다.
-        return postRepository.findByArtistProfileAndBoardTypeOrderByCreatedAtDesc(
-                        artistProfile, boardType, PageRequest.of(page, size))
+    /**
+     * 유저 프로필의 "작성한 글" 목록 — membersOnly 글은 boardType=ARTIST에서만 허용되고 그
+     * 게시판의 아티스트 본인만 작성 가능하므로(Post.create 검증), 이 목록에 membersOnly 글이
+     * 있다면 authorId가 곧 그 글의 아티스트다. 그래서 본인 프로필(viewerId==authorId)이면
+     * 항상 잠금 없이, 아니면 그 글의 artistId 기준 구독 여부만 보면 된다.
+     */
+    @Transactional(readOnly = true)
+    public CursorPageResponse<PostResponse> getByAuthor(Long viewerId, Long authorId, Long cursor, int size) {
+        User author = userRepository.findById(authorId)
+                .orElseThrow(() -> new InvalidRequestException("유저 정보를 찾을 수 없습니다."));
+
+        boolean isOwnProfile = Objects.equals(viewerId, authorId);
+        List<PostResponse> fetched = postRepository.findByAuthorAndCursor(author, cursor, PageRequest.of(0, size + 1))
                 .stream()
                 .map(PostResponse::from)
                 .toList();
+
+        List<PostResponse> masked = fetched.stream()
+                .map(response -> {
+                    if (!response.membersOnly() || isOwnProfile) {
+                        return response;
+                    }
+                    boolean isSubscriber = viewerId != null && membershipRepository
+                            .existsBySubscriberIdAndArtistIdAndStatus(viewerId, response.artistId(), MembershipStatus.ACTIVE);
+                    return isSubscriber ? response : response.mask();
+                })
+                .toList();
+        return CursorPageResponse.of(masked, size, PostResponse::postId);
     }
 }

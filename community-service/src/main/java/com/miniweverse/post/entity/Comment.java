@@ -12,18 +12,23 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import java.time.LocalDateTime;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.NotFound;
 import org.hibernate.annotations.NotFoundAction;
+import org.hibernate.annotations.SQLRestriction;
 
 /**
  * 댓글은 게시판 종류(FEED/ARTIST) 상관없이 그 아티스트를 팔로우한 사람이면 누구나 달 수 있다.
  * 팔로우 여부는 Follow 조회가 필요해서 엔티티가 아니라 CommentService에서 검증한다.
+ * deletedAt은 Post/User와 동일한 soft delete 패턴 — 삭제된 댓글도 신고/분쟁 대응을 위해
+ * DB에는 물리적으로 남아있어야 해서 하드 삭제 대신 소프트 삭제를 쓴다.
  */
 @Entity
 @Table(name = "comments")
+@SQLRestriction("deleted_at IS NULL")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Comment extends BaseTimeEntity {
@@ -48,6 +53,8 @@ public class Comment extends BaseTimeEntity {
     @Column(nullable = false, columnDefinition = "TEXT")
     private String content;
 
+    private LocalDateTime deletedAt;
+
     private Comment(Post post, User author, String content) {
         this.post = post;
         this.author = author;
@@ -69,5 +76,13 @@ public class Comment extends BaseTimeEntity {
             throw new InvalidRequestException("본문은 필수입니다.");
         }
         this.content = content;
+    }
+
+    public void delete() {
+        this.deletedAt = LocalDateTime.now();
+    }
+
+    public boolean isDeleted() {
+        return deletedAt != null;
     }
 }

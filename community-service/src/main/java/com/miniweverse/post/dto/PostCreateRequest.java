@@ -6,6 +6,7 @@ import jakarta.validation.constraints.NotNull;
 
 public record PostCreateRequest(
         @NotNull BoardType boardType,
-        @NotBlank String content
+        @NotBlank String content,
+        boolean membersOnly
 ) {
 }
