@@ -14,12 +14,14 @@ import org.springframework.data.repository.query.Param;
 public interface PostRepository extends JpaRepository<Post, Long> {
 
     /**
-     * 수정/삭제 시 본인 확인 및 응답 매핑에 필요한 연관관계까지 미리 로딩한다 (목록 조회 쿼리와 동일한 이유).
+     * 수정/삭제 시 본인 확인 및 응답 매핑에 필요한 연관관계까지 미리 로딩한다.
      * author/artistProfile/ap.user 전부 LEFT JOIN이다 — INNER JOIN이면 작성자나 그 게시판 아티스트가
      * 탈퇴(User/ArtistProfile.deletedAt)했을 때 {@code @SQLRestriction} 때문에, 정작 삭제되지 않은
      * 게시글까지 조회 자체에서 통째로 걸러진다(예: 아티스트가 탈퇴하면 그 게시판의 다른 팬 게시글도
      * 전부 "찾을 수 없음"으로 취급되어 정당한 작성자가 자기 글을 수정/삭제할 수 없게 됨).
-     * 목록 조회 쿼리는 artistProfile을 호출부에서 이미 유효성 검증 후 넘겨받아 이 문제가 없다.
+     * 아래 목록 조회 쿼리들도 ap.user 탈퇴 시 같은 문제가 있어 동일하게 LEFT JOIN으로 맞춘다
+     * (artistProfile 자체는 호출부에서 이미 유효성 검증하지만, 그 소유주 User의 탈퇴 여부까지는
+     * 별개 문제라 검증되지 않는다).
      */
     @Query("""
             SELECT p FROM Post p
@@ -40,8 +42,8 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     @Query("""
             SELECT p FROM Post p
             LEFT JOIN FETCH p.author
-            JOIN FETCH p.artistProfile ap
-            JOIN FETCH ap.user
+            LEFT JOIN FETCH p.artistProfile ap
+            LEFT JOIN FETCH ap.user
             WHERE p.artistProfile = :artistProfile AND p.boardType = :boardType
             AND (:cursor IS NULL OR p.id < :cursor)
             ORDER BY p.id DESC
@@ -59,8 +61,8 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     @Query("""
             SELECT p FROM Post p
             LEFT JOIN FETCH p.author
-            JOIN FETCH p.artistProfile ap
-            JOIN FETCH ap.user
+            LEFT JOIN FETCH p.artistProfile ap
+            LEFT JOIN FETCH ap.user
             WHERE p.author = :author
             AND (:cursor IS NULL OR p.id < :cursor)
             ORDER BY p.id DESC

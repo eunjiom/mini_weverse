@@ -40,12 +40,14 @@ public class FollowRepository {
 
     /**
      * userId가 아티스트로서 가진 팔로워 수. ArtistProfile이 없는 유저(팬)는 0이 나온다.
+     * 탈퇴한 팔로워(users.deleted_at)는 findFollowedArtists의 필터 조건과 맞추기 위해 제외한다.
      */
     public long countFollowers(Long userId) {
         Long count = jdbcTemplate.queryForObject(
                 """
                 SELECT COUNT(*) FROM follows f
                 JOIN artist_profiles ap ON ap.id = f.artist_id AND ap.deleted_at IS NULL
+                JOIN users u ON u.id = f.follower_id AND u.deleted_at IS NULL
                 WHERE ap.user_id = ?
                 """,
                 Long.class, userId
@@ -53,9 +55,18 @@ public class FollowRepository {
         return count != null ? count : 0L;
     }
 
+    /**
+     * findFollowedArtists와 동일한 조건(탈퇴한 아티스트/유저 제외)으로 세야, 팔로잉 수와
+     * 실제 목록에 보이는 항목 수가 어긋나지 않는다.
+     */
     public long countFollowing(Long followerId) {
         Long count = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM follows WHERE follower_id = ?",
+                """
+                SELECT COUNT(*) FROM follows f
+                JOIN artist_profiles ap ON ap.id = f.artist_id AND ap.deleted_at IS NULL
+                JOIN users u ON u.id = ap.user_id AND u.deleted_at IS NULL
+                WHERE f.follower_id = ?
+                """,
                 Long.class, followerId
         );
         return count != null ? count : 0L;
