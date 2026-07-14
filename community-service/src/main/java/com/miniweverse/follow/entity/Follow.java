@@ -33,10 +33,7 @@ public class Follow {
         if (follower == null || artist == null) {
             throw new InvalidRequestException("follower와 artist는 필수입니다.");
         }
-        User artistUser = artist.getUser();
-        if (artistUser == null) {
-            throw new InvalidRequestException("아티스트 정보를 찾을 수 없습니다.");
-        }
+        User artistUser = artist.requireOwner();
         boolean isSelfFollow = follower == artistUser
                 || (follower.getId() != null && Objects.equals(follower.getId(), artistUser.getId()));
         if (isSelfFollow) {

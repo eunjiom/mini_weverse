@@ -2,6 +2,7 @@ package com.miniweverse.user.entity;
 
 import com.miniweverse.common.BaseTimeEntity;
 import com.miniweverse.exception.AuthUserExceptions.InvalidArtistProfileException;
+import com.miniweverse.exception.AuthUserExceptions.InvalidRequestException;
 import com.miniweverse.user.enums.ArtistCategory;
 import com.miniweverse.user.enums.Role;
 import jakarta.persistence.Column;
@@ -113,6 +114,17 @@ public class ArtistProfile extends BaseTimeEntity {
         if (group != null) {
             throw new InvalidArtistProfileException("SOLO/GROUP은 소속 그룹을 가질 수 없습니다.");
         }
+    }
+
+    /**
+     * Follow/Membership 생성 시 반복되던 "이 프로필의 소유주 User를 확인" 로직을 공통화한 것.
+     * 소유주가 탈퇴 등으로 로딩 안 되면(@NotFound(IGNORE)로 null 처리됨) 명확한 에러로 막는다.
+     */
+    public User requireOwner() {
+        if (user == null) {
+            throw new InvalidRequestException("아티스트 정보를 찾을 수 없습니다.");
+        }
+        return user;
     }
 
     public void delete() {
