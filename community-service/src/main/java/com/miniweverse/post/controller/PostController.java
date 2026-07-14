@@ -39,7 +39,7 @@ public class PostController {
             @PathVariable Long artistId,
             @Valid @RequestBody PostCreateRequest request
     ) {
-        Post post = postService.create(authorId, artistId, request.boardType(), request.content());
+        Post post = postService.create(authorId, artistId, request.boardType(), request.content(), request.membersOnly());
         return ResponseEntity.status(HttpStatus.CREATED).body(PostResponse.from(post));
     }
 

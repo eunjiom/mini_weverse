@@ -67,16 +67,24 @@ public class Post extends BaseTimeEntity {
     @Column(nullable = false, columnDefinition = "TEXT")
     private String content;
 
+    // 기존 게시글이 있는 테이블에 NOT NULL 컬럼을 기본값 없이 추가하면 ALTER TABLE 자체가 실패한다
+    // (기존 row가 NULL이 되어 제약 위반) — DEFAULT false를 명시해 기존 row를 자동으로 채우게 한다.
+    @Column(nullable = false, columnDefinition = "boolean not null default false")
+    private boolean membersOnly;
+
     private LocalDateTime deletedAt;
 
-    private Post(User author, ArtistProfile artistProfile, BoardType boardType, String content) {
+    private Post(User author, ArtistProfile artistProfile, BoardType boardType, String content, boolean membersOnly) {
         this.author = author;
         this.artistProfile = artistProfile;
         this.boardType = boardType;
         this.content = content;
+        this.membersOnly = membersOnly;
     }
 
-    public static Post create(User author, ArtistProfile artistProfile, BoardType boardType, String content) {
+    public static Post create(
+            User author, ArtistProfile artistProfile, BoardType boardType, String content, boolean membersOnly
+    ) {
         if (author == null || artistProfile == null || boardType == null) {
             throw new InvalidRequestException("author, artistProfile, boardType은 필수입니다.");
         }
@@ -86,7 +94,10 @@ public class Post extends BaseTimeEntity {
         if (boardType == BoardType.ARTIST && !author.getId().equals(artistProfile.getUser().getId())) {
             throw new InvalidRequestException("아티스트 게시판은 본인만 작성할 수 있습니다.");
         }
-        return new Post(author, artistProfile, boardType, content);
+        if (membersOnly && boardType != BoardType.ARTIST) {
+            throw new InvalidRequestException("멤버십 전용 글은 아티스트 게시판에만 작성할 수 있습니다.");
+        }
+        return new Post(author, artistProfile, boardType, content, membersOnly);
     }
 
     public void updateContent(String content) {

@@ -41,7 +41,7 @@ public class PostService {
     }
 
     @Transactional
-    public Post create(Long authorId, Long artistProfileId, BoardType boardType, String content) {
+    public Post create(Long authorId, Long artistProfileId, BoardType boardType, String content, boolean membersOnly) {
         User author = userRepository.findById(authorId)
                 .orElseThrow(() -> new InvalidRequestException("작성자 정보를 찾을 수 없습니다."));
         ArtistProfile artistProfile = artistProfileRepository.findById(artistProfileId)
@@ -51,7 +51,7 @@ public class PostService {
             throw new InvalidRequestException("팔로우한 아티스트의 피드 게시판에만 글을 작성할 수 있습니다.");
         }
 
-        Post post = postRepository.save(Post.create(author, artistProfile, boardType, content));
+        Post post = postRepository.save(Post.create(author, artistProfile, boardType, content, membersOnly));
         postCacheService.evictPosts(artistProfile, boardType);
         return post;
     }
