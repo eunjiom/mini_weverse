@@ -1,12 +1,10 @@
 package com.miniweverse.follow.controller;
 
 import com.miniweverse.follow.dto.FollowRequest;
-import com.miniweverse.follow.dto.FollowResponse;
 import com.miniweverse.follow.dto.FollowedArtistResponse;
 import com.miniweverse.follow.service.FollowService;
 import jakarta.validation.Valid;
 import java.util.List;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -33,12 +31,12 @@ public class FollowController {
     }
 
     @PostMapping("/follows")
-    public ResponseEntity<FollowResponse> follow(
+    public ResponseEntity<Void> follow(
             @AuthenticationPrincipal Long followerId,
             @Valid @RequestBody FollowRequest request
     ) {
         followService.follow(followerId, request.artistId());
-        return ResponseEntity.status(HttpStatus.CREATED).body(new FollowResponse(request.artistId()));
+        return ResponseEntity.noContent().build();
     }
 
     @DeleteMapping("/follows/{artistId}")
