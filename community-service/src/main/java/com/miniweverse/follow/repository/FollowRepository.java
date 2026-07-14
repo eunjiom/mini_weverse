@@ -38,6 +38,29 @@ public class FollowRepository {
         );
     }
 
+    /**
+     * userId가 아티스트로서 가진 팔로워 수. ArtistProfile이 없는 유저(팬)는 0이 나온다.
+     */
+    public long countFollowers(Long userId) {
+        Long count = jdbcTemplate.queryForObject(
+                """
+                SELECT COUNT(*) FROM follows f
+                JOIN artist_profiles ap ON ap.id = f.artist_id AND ap.deleted_at IS NULL
+                WHERE ap.user_id = ?
+                """,
+                Long.class, userId
+        );
+        return count != null ? count : 0L;
+    }
+
+    public long countFollowing(Long followerId) {
+        Long count = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM follows WHERE follower_id = ?",
+                Long.class, followerId
+        );
+        return count != null ? count : 0L;
+    }
+
     public boolean existsByFollowerAndArtist(Long followerId, Long artistId) {
         Boolean exists = jdbcTemplate.queryForObject(
                 "SELECT EXISTS(SELECT 1 FROM follows WHERE follower_id = ? AND artist_id = ?)",
