@@ -1,8 +1,10 @@
 package com.miniweverse.post.service;
 
+import com.miniweverse.common.response.CursorPageResponse;
 import com.miniweverse.exception.AuthUserExceptions.InvalidRequestException;
 import com.miniweverse.exception.AuthUserExceptions.NotFollowingArtistException;
 import com.miniweverse.follow.repository.FollowRepository;
+import com.miniweverse.post.dto.CommentResponse;
 import com.miniweverse.post.entity.Comment;
 import com.miniweverse.post.entity.Post;
 import com.miniweverse.post.repository.CommentRepository;
@@ -49,11 +51,15 @@ public class CommentService {
     }
 
     @Transactional(readOnly = true)
-    public List<Comment> getByPost(Long postId, int page, int size) {
+    public CursorPageResponse<CommentResponse> getByPost(Long postId, Long cursor, int size) {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new InvalidRequestException("게시글을 찾을 수 없습니다."));
 
-        return commentRepository.findByPostOrderByCreatedAtAsc(post, PageRequest.of(page, size));
+        List<CommentResponse> fetched = commentRepository.findByPostAndCursor(post, cursor, PageRequest.of(0, size + 1))
+                .stream()
+                .map(CommentResponse::from)
+                .toList();
+        return CursorPageResponse.of(fetched, size, CommentResponse::commentId);
     }
 
     @Transactional

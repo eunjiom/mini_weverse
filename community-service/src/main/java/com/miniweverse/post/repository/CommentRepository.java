@@ -28,18 +28,18 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
     /**
      * open-in-view: false라 컨트롤러에서 지연 로딩 필드(author, post)에 접근하면
      * LazyInitializationException이 난다. 응답 DTO 매핑에 필요한 연관관계를 조회 시점에 미리 로딩한다.
-     * 정렬은 쿼리에 고정(createdAt ASC)하고, Pageable은 페이지/크기(LIMIT/OFFSET)만 적용한다.
-     * createdAt이 같은 값일 경우를 대비해 id를 2차 정렬 기준으로 둬서, 오프셋 페이지네이션 시
-     * 정렬 순서가 항상 결정적이도록 한다.
+     * ID 기준 커서 페이지네이션 — 댓글은 오래된 순으로 보여주다가 스크롤하면 그 이후(더 나중에 달린)
+     * 댓글을 이어서 불러오는 방향이라, cursor보다 큰(더 나중 id) 댓글을 오름차순으로 가져온다.
      */
     @Query("""
             SELECT c FROM Comment c
             LEFT JOIN FETCH c.author
             JOIN FETCH c.post
             WHERE c.post = :post
-            ORDER BY c.createdAt ASC, c.id ASC
+            AND (:cursor IS NULL OR c.id > :cursor)
+            ORDER BY c.id ASC
             """)
-    List<Comment> findByPostOrderByCreatedAtAsc(@Param("post") Post post, Pageable pageable);
+    List<Comment> findByPostAndCursor(@Param("post") Post post, @Param("cursor") Long cursor, Pageable pageable);
 
     @Query("""
             SELECT c FROM Comment c
