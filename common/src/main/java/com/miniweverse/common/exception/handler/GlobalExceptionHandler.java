@@ -12,6 +12,8 @@ import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.servlet.NoHandlerFoundException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 /**
  * common 모듈 소유 타입(BusinessException/ErrorCode/ApiResponse)에만 의존해서 서비스별
@@ -61,6 +63,16 @@ public class GlobalExceptionHandler {
         String message = e.getName() + ": 요청 값의 형식이 올바르지 않습니다.";
         return ResponseEntity.status(CommonErrorCode.VALIDATION_ERROR.getHttpStatus())
                 .body(ApiResponse.error(CommonErrorCode.VALIDATION_ERROR.getCode(), message));
+    }
+
+    /**
+     * 매핑된 컨트롤러가 없을 때 Spring이 던지는 예외 — 이걸 따로 안 잡으면 아래 catch-all에
+     * 걸려서 404가 아니라 500으로 응답된다.
+     */
+    @ExceptionHandler({NoResourceFoundException.class, NoHandlerFoundException.class})
+    public ResponseEntity<ApiResponse<Void>> handleNotFoundException(Exception e) {
+        return ResponseEntity.status(CommonErrorCode.NOT_FOUND.getHttpStatus())
+                .body(ApiResponse.error(CommonErrorCode.NOT_FOUND));
     }
 
     @ExceptionHandler(Exception.class)
