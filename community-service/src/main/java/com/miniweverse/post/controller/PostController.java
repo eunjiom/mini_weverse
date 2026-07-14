@@ -1,5 +1,6 @@
 package com.miniweverse.post.controller;
 
+import com.miniweverse.common.response.CursorPageResponse;
 import com.miniweverse.post.dto.PostCreateRequest;
 import com.miniweverse.post.dto.PostResponse;
 import com.miniweverse.post.dto.PostUpdateRequest;
@@ -9,7 +10,6 @@ import com.miniweverse.post.service.PostService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
-import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -44,14 +44,13 @@ public class PostController {
     }
 
     @GetMapping("/artists/{artistId}/posts")
-    public ResponseEntity<List<PostResponse>> list(
+    public ResponseEntity<CursorPageResponse<PostResponse>> list(
             @PathVariable Long artistId,
             @RequestParam BoardType boardType,
-            @RequestParam(defaultValue = "0") @Min(0) int page,
+            @RequestParam(required = false) Long cursor,
             @RequestParam(defaultValue = "20") @Min(1) @Max(50) int size
     ) {
-        List<PostResponse> posts = postService.getByArtistAndBoardType(artistId, boardType, page, size);
-        return ResponseEntity.ok(posts);
+        return ResponseEntity.ok(postService.getByArtistAndBoardType(artistId, boardType, cursor, size));
     }
 
     @GetMapping("/posts/{postId}")

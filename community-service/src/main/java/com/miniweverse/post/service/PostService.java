@@ -1,5 +1,6 @@
 package com.miniweverse.post.service;
 
+import com.miniweverse.common.response.CursorPageResponse;
 import com.miniweverse.exception.AuthUserExceptions.InvalidRequestException;
 import com.miniweverse.follow.repository.FollowRepository;
 import com.miniweverse.post.dto.PostResponse;
@@ -84,33 +85,29 @@ public class PostService {
         postCacheService.evictPosts(post.getArtistProfile(), post.getBoardType());
     }
 
+    /**
+     * 첫 페이지(cursor=null)는 캐시(최근 {@link PostCacheService#CACHE_CAPACITY}개)에서 서빙하고,
+     * 그 이후 페이지(cursor 있음)는 캐시를 거치지 않고 DB에서 직접 조회한다. 무한스크롤 트래픽은
+     * 진입 시점(첫 페이지)에 몰리고 그 이후 스크롤은 유저마다 시점이 갈려 분산되므로, 모든 페이지를
+     * 캐시와 맞물려 처리하는 복잡도를 들이지 않아도 충분하다고 판단했다.
+     */
     @Transactional(readOnly = true)
-    public List<PostResponse> getByArtistAndBoardType(
-            Long artistProfileId, BoardType boardType, int page, int size
+    public CursorPageResponse<PostResponse> getByArtistAndBoardType(
+            Long artistProfileId, BoardType boardType, Long cursor, int size
     ) {
         ArtistProfile artistProfile = artistProfileRepository.findById(artistProfileId)
                 .orElseThrow(() -> new InvalidRequestException("아티스트 프로필을 찾을 수 없습니다."));
 
-        // page에는 상한이 없어 int로 계산하면 큰 값에서 오버플로가 날 수 있으므로 long으로 계산한다.
-        long offset = (long) page * size;
-        if (offset >= 0 && offset + size <= PostCacheService.CACHE_CAPACITY) {
+        if (cursor == null) {
             List<PostResponse> cached = postCacheService.getCachedPosts(artistProfile, boardType);
-            int fromIndex = Math.min((int) offset, cached.size());
-            int toIndex = Math.min((int) (offset + size), cached.size());
-            return cached.subList(fromIndex, toIndex);
+            return CursorPageResponse.of(cached, size, PostResponse::postId);
         }
 
-        // JPA의 Query.setFirstResult(int)는 offset이 Integer.MAX_VALUE를 넘으면 예외를 던진다.
-        // 그 범위를 벗어나는 페이지는 실제로 존재할 수 없는 데이터이므로 조회 없이 빈 목록을 반환한다.
-        if (offset > Integer.MAX_VALUE) {
-            return List.of();
-        }
-
-        // 캐시 범위(최근 CACHE_CAPACITY개)를 벗어난 페이지는 캐시를 거치지 않고 DB에서 직접 조회한다.
-        return postRepository.findByArtistProfileAndBoardTypeOrderByCreatedAtDesc(
-                        artistProfile, boardType, PageRequest.of(page, size))
+        List<PostResponse> fetched = postRepository.findByArtistProfileAndBoardTypeAndCursor(
+                        artistProfile, boardType, cursor, PageRequest.of(0, size + 1))
                 .stream()
                 .map(PostResponse::from)
                 .toList();
+        return CursorPageResponse.of(fetched, size, PostResponse::postId);
     }
 }

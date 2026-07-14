@@ -29,8 +29,8 @@ public class PostCacheService {
 
     @Cacheable(value = "posts", key = "#p0.id + ':' + #p1")
     public List<PostResponse> getCachedPosts(ArtistProfile artistProfile, BoardType boardType) {
-        return postRepository.findByArtistProfileAndBoardTypeOrderByCreatedAtDesc(
-                        artistProfile, boardType, PageRequest.of(0, CACHE_CAPACITY))
+        return postRepository.findByArtistProfileAndBoardTypeAndCursor(
+                        artistProfile, boardType, null, PageRequest.of(0, CACHE_CAPACITY))
                 .stream()
                 .map(PostResponse::from)
                 .toList();

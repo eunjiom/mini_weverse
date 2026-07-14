@@ -33,7 +33,9 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     /**
      * open-in-view: false라 컨트롤러에서 지연 로딩 필드(author, artistProfile.user)에 접근하면
      * LazyInitializationException이 난다. 응답 DTO 매핑에 필요한 연관관계를 조회 시점에 미리 로딩한다.
-     * 정렬은 쿼리에 고정(createdAt DESC)하고, Pageable은 페이지/크기(LIMIT/OFFSET)만 적용한다.
+     * ID 기준 커서 페이지네이션 — IDENTITY PK가 삽입 순서를 그대로 반영해 createdAt 정렬과 사실상
+     * 동일하면서 복합 인덱스 없이 PK만으로 처리 가능하다. cursor가 null이면 최신 목록(캐시 채우기 등)을
+     * 조회하고, 있으면 그 id보다 작은(더 오래된) 게시글을 가져온다. Pageable은 LIMIT(개수 제한)에만 쓴다.
      */
     @Query("""
             SELECT p FROM Post p
@@ -41,11 +43,13 @@ public interface PostRepository extends JpaRepository<Post, Long> {
             JOIN FETCH p.artistProfile ap
             JOIN FETCH ap.user
             WHERE p.artistProfile = :artistProfile AND p.boardType = :boardType
-            ORDER BY p.createdAt DESC
+            AND (:cursor IS NULL OR p.id < :cursor)
+            ORDER BY p.id DESC
             """)
-    List<Post> findByArtistProfileAndBoardTypeOrderByCreatedAtDesc(
+    List<Post> findByArtistProfileAndBoardTypeAndCursor(
             @Param("artistProfile") ArtistProfile artistProfile,
             @Param("boardType") BoardType boardType,
+            @Param("cursor") Long cursor,
             Pageable pageable
     );
 
