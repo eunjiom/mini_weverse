@@ -49,6 +49,7 @@ public class AuthController {
         if (result instanceof LoginResult.UserLoginResult userLogin) {
             return ResponseEntity.ok()
                     .header(HttpHeaders.SET_COOKIE, userLogin.refreshTokenCookie().toString())
+                    .header(HttpHeaders.SET_COOKIE, userLogin.accessTokenCookie().toString())
                     .header(HttpHeaders.AUTHORIZATION, "Bearer " + userLogin.accessToken())
                     .body(new TokenResponse(userLogin.accessToken()));
         }
@@ -64,6 +65,7 @@ public class AuthController {
         LoginResult.UserLoginResult result = authService.reissue(refreshToken);
         return ResponseEntity.ok()
                 .header(HttpHeaders.SET_COOKIE, result.refreshTokenCookie().toString())
+                .header(HttpHeaders.SET_COOKIE, result.accessTokenCookie().toString())
                 .header(HttpHeaders.AUTHORIZATION, "Bearer " + result.accessToken())
                 .body(new TokenResponse(result.accessToken()));
     }
@@ -84,6 +86,7 @@ public class AuthController {
             authService.logoutByRefreshToken(refreshToken);
         }
         response.addHeader(HttpHeaders.SET_COOKIE, authService.expiredRefreshTokenCookie().toString());
+        response.addHeader(HttpHeaders.SET_COOKIE, authService.expiredAccessTokenCookie().toString());
         return ResponseEntity.ok().build();
     }
 

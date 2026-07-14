@@ -36,6 +36,9 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/error").permitAll()
+                        // WebSocket 핸드셰이크는 이 서블릿 필터(Authorization 헤더 기반)가 아니라
+                        // JwtHandshakeInterceptor(쿠키 기반)가 별도로 인증한다.
+                        .requestMatchers("/api/chat/ws-chat").permitAll()
                         .anyRequest().authenticated())
                 .exceptionHandling(ex -> ex.authenticationEntryPoint(jwtAuthenticationEntryPoint))
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

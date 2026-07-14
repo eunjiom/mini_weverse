@@ -13,6 +13,7 @@ import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.core.Ordered;
 import org.springframework.core.io.buffer.DataBuffer;
+import org.springframework.http.HttpCookie;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.server.reactive.ServerHttpRequest;
@@ -31,6 +32,14 @@ import tools.jackson.databind.ObjectMapper;
 public class RoleAuthorizationGlobalFilter implements GlobalFilter, Ordered {
 
     private static final String BEARER_PREFIX = "Bearer ";
+
+    /**
+     * 브라우저 WebSocket API는 핸드셰이크 요청에 커스텀 헤더를 못 붙이므로, 이 경로 하나만
+     * 예외적으로 쿠키에서 토큰을 읽는다. 다른 모든 경로는 절대 쿠키를 보지 않는다 — 쿠키를
+     * 일반적인 인증 수단으로 확장하면 헤더 전용이라 꺼둔 CSRF 방어가 무의미해지기 때문.
+     */
+    private static final String CHAT_WS_HANDSHAKE_PATH = "/api/chat/ws-chat";
+    private static final String ACCESS_TOKEN_COOKIE_NAME = "accessToken";
 
     private final RouteAccessPolicy routeAccessPolicy;
     private final GatewayJwtVerifier jwtVerifier;
@@ -55,7 +64,7 @@ public class RoleAuthorizationGlobalFilter implements GlobalFilter, Ordered {
             return chain.filter(exchange);
         }
 
-        String token = extractBearerToken(request);
+        String token = extractToken(request);
         if (token == null) {
             return reject(exchange, GatewayErrorCode.AUTHENTICATION_REQUIRED);
         }
@@ -82,12 +91,24 @@ public class RoleAuthorizationGlobalFilter implements GlobalFilter, Ordered {
         return -1;
     }
 
+    private String extractToken(ServerHttpRequest request) {
+        if (CHAT_WS_HANDSHAKE_PATH.equals(request.getPath().value())) {
+            return extractCookieToken(request);
+        }
+        return extractBearerToken(request);
+    }
+
     private String extractBearerToken(ServerHttpRequest request) {
         String header = request.getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
         if (header != null && header.startsWith(BEARER_PREFIX)) {
             return header.substring(BEARER_PREFIX.length());
         }
         return null;
+    }
+
+    private String extractCookieToken(ServerHttpRequest request) {
+        HttpCookie cookie = request.getCookies().getFirst(ACCESS_TOKEN_COOKIE_NAME);
+        return cookie != null ? cookie.getValue() : null;
     }
 
     private Role parseRole(String value) {
