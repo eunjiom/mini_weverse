@@ -53,13 +53,17 @@ public interface PostRepository extends JpaRepository<Post, Long> {
             Pageable pageable
     );
 
+    /**
+     * 유저 프로필의 "작성한 글" 목록 — ID 기준 커서 페이지네이션(다른 목록 조회와 동일한 방식).
+     */
     @Query("""
             SELECT p FROM Post p
-            JOIN FETCH p.author
+            LEFT JOIN FETCH p.author
             JOIN FETCH p.artistProfile ap
             JOIN FETCH ap.user
             WHERE p.author = :author
-            ORDER BY p.createdAt DESC
+            AND (:cursor IS NULL OR p.id < :cursor)
+            ORDER BY p.id DESC
             """)
-    List<Post> findByAuthorOrderByCreatedAtDesc(@Param("author") User author);
+    List<Post> findByAuthorAndCursor(@Param("author") User author, @Param("cursor") Long cursor, Pageable pageable);
 }

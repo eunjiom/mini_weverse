@@ -41,12 +41,16 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
             """)
     List<Comment> findByPostAndCursor(@Param("post") Post post, @Param("cursor") Long cursor, Pageable pageable);
 
+    /**
+     * 유저 프로필의 "작성한 댓글" 목록 — ID 기준 커서 페이지네이션.
+     */
     @Query("""
             SELECT c FROM Comment c
-            JOIN FETCH c.author
+            LEFT JOIN FETCH c.author
             JOIN FETCH c.post
             WHERE c.author = :author
-            ORDER BY c.createdAt DESC
+            AND (:cursor IS NULL OR c.id < :cursor)
+            ORDER BY c.id DESC
             """)
-    List<Comment> findByAuthorOrderByCreatedAtDesc(@Param("author") User author);
+    List<Comment> findByAuthorAndCursor(@Param("author") User author, @Param("cursor") Long cursor, Pageable pageable);
 }

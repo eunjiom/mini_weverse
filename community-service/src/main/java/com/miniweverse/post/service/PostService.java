@@ -146,4 +146,34 @@ public class PostService {
         }
         return membershipRepository.existsBySubscriberIdAndArtistAndStatus(viewerId, artistProfile, MembershipStatus.ACTIVE);
     }
+
+    /**
+     * 유저 프로필의 "작성한 글" 목록 — membersOnly 글은 boardType=ARTIST에서만 허용되고 그
+     * 게시판의 아티스트 본인만 작성 가능하므로(Post.create 검증), 이 목록에 membersOnly 글이
+     * 있다면 authorId가 곧 그 글의 아티스트다. 그래서 본인 프로필(viewerId==authorId)이면
+     * 항상 잠금 없이, 아니면 그 글의 artistId 기준 구독 여부만 보면 된다.
+     */
+    @Transactional(readOnly = true)
+    public CursorPageResponse<PostResponse> getByAuthor(Long viewerId, Long authorId, Long cursor, int size) {
+        User author = userRepository.findById(authorId)
+                .orElseThrow(() -> new InvalidRequestException("유저 정보를 찾을 수 없습니다."));
+
+        boolean isOwnProfile = Objects.equals(viewerId, authorId);
+        List<PostResponse> fetched = postRepository.findByAuthorAndCursor(author, cursor, PageRequest.of(0, size + 1))
+                .stream()
+                .map(PostResponse::from)
+                .toList();
+
+        List<PostResponse> masked = fetched.stream()
+                .map(response -> {
+                    if (!response.membersOnly() || isOwnProfile) {
+                        return response;
+                    }
+                    boolean isSubscriber = viewerId != null && membershipRepository
+                            .existsBySubscriberIdAndArtistIdAndStatus(viewerId, response.artistId(), MembershipStatus.ACTIVE);
+                    return isSubscriber ? response : response.mask();
+                })
+                .toList();
+        return CursorPageResponse.of(masked, size, PostResponse::postId);
+    }
 }

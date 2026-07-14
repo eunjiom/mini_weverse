@@ -38,6 +38,12 @@ public interface MembershipRepository extends JpaRepository<Membership, Long> {
     boolean existsBySubscriberIdAndArtistAndStatus(Long subscriberId, ArtistProfile artist, MembershipStatus status);
 
     /**
+     * 유저 프로필의 "작성한 글" 목록에서 멤버십 전용 글 잠금 여부 판단용 — ArtistProfile 엔티티 없이
+     * artistId만으로 체크한다(PostResponse가 artistId만 들고 있어서).
+     */
+    boolean existsBySubscriberIdAndArtistIdAndStatus(Long subscriberId, Long artistId, MembershipStatus status);
+
+    /**
      * open-in-view: false라 트랜잭션 밖(컨트롤러 DTO 매핑)에서 artist에 접근하려면
      * JOIN FETCH로 미리 로딩해야 한다 (PostRepository와 동일한 이유).
      * LEFT JOIN이다 — INNER JOIN이면 구독한 아티스트가 탈퇴(User.deletedAt)했을 때

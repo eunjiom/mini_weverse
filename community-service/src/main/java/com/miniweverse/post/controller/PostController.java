@@ -62,6 +62,16 @@ public class PostController {
         return ResponseEntity.ok(postService.getById(viewerId, postId));
     }
 
+    @GetMapping("/users/{userId}/posts")
+    public ResponseEntity<CursorPageResponse<PostResponse>> listByAuthor(
+            @AuthenticationPrincipal Long viewerId,
+            @PathVariable Long userId,
+            @RequestParam(required = false) Long cursor,
+            @RequestParam(defaultValue = "20") @Min(1) @Max(50) int size
+    ) {
+        return ResponseEntity.ok(postService.getByAuthor(viewerId, userId, cursor, size));
+    }
+
     @PatchMapping("/posts/{postId}")
     public ResponseEntity<PostResponse> update(
             @AuthenticationPrincipal Long requesterId,

@@ -71,6 +71,22 @@ public class CommentService {
         return CursorPageResponse.of(fetched, size, CommentResponse::commentId);
     }
 
+    /**
+     * 유저 프로필의 "작성한 댓글" 목록 — 원글이 멤버십 전용이라도 댓글 텍스트 자체가 원글 내용을
+     * 노출하는 건 아니라서 별도 잠금 없이 그대로 보여준다(범위 밖으로 판단, 필요하면 나중에 추가).
+     */
+    @Transactional(readOnly = true)
+    public CursorPageResponse<CommentResponse> getByAuthor(Long authorId, Long cursor, int size) {
+        User author = userRepository.findById(authorId)
+                .orElseThrow(() -> new InvalidRequestException("유저 정보를 찾을 수 없습니다."));
+
+        List<CommentResponse> fetched = commentRepository.findByAuthorAndCursor(author, cursor, PageRequest.of(0, size + 1))
+                .stream()
+                .map(CommentResponse::from)
+                .toList();
+        return CursorPageResponse.of(fetched, size, CommentResponse::commentId);
+    }
+
     @Transactional
     public Comment update(Long commentId, Long requesterId, String content) {
         Comment comment = commentRepository.findByIdWithDetails(commentId)
