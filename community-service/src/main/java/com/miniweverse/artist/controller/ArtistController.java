@@ -2,10 +2,10 @@ package com.miniweverse.artist.controller;
 
 import com.miniweverse.artist.dto.ArtistSearchResponse;
 import com.miniweverse.artist.service.ArtistService;
+import com.miniweverse.common.response.CursorPageResponse;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
-import java.util.List;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -23,11 +23,11 @@ public class ArtistController {
     }
 
     @GetMapping("/artists")
-    public ResponseEntity<List<ArtistSearchResponse>> search(
+    public ResponseEntity<CursorPageResponse<ArtistSearchResponse>> search(
             @RequestParam @NotBlank String name,
-            @RequestParam(defaultValue = "0") @Min(0) int page,
+            @RequestParam(required = false) Long cursor,
             @RequestParam(defaultValue = "20") @Min(1) @Max(50) int size
     ) {
-        return ResponseEntity.ok(artistService.search(name, page, size));
+        return ResponseEntity.ok(artistService.search(name, cursor, size));
     }
 }
