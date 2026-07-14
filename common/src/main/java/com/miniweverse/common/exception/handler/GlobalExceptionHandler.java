@@ -8,8 +8,10 @@ import jakarta.validation.ConstraintViolationException;
 import java.util.stream.Collectors;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 /**
  * common 모듈 소유 타입(BusinessException/ErrorCode/ApiResponse)에만 의존해서 서비스별
@@ -43,6 +45,20 @@ public class GlobalExceptionHandler {
         String message = e.getConstraintViolations().stream()
                 .map(violation -> violation.getPropertyPath() + ": " + violation.getMessage())
                 .collect(Collectors.joining(", "));
+        return ResponseEntity.status(CommonErrorCode.VALIDATION_ERROR.getHttpStatus())
+                .body(ApiResponse.error(CommonErrorCode.VALIDATION_ERROR.getCode(), message));
+    }
+
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    public ResponseEntity<ApiResponse<Void>> handleMissingParameterException(MissingServletRequestParameterException e) {
+        String message = e.getParameterName() + ": 필수 파라미터입니다.";
+        return ResponseEntity.status(CommonErrorCode.VALIDATION_ERROR.getHttpStatus())
+                .body(ApiResponse.error(CommonErrorCode.VALIDATION_ERROR.getCode(), message));
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ApiResponse<Void>> handleTypeMismatchException(MethodArgumentTypeMismatchException e) {
+        String message = e.getName() + ": 요청 값의 형식이 올바르지 않습니다.";
         return ResponseEntity.status(CommonErrorCode.VALIDATION_ERROR.getHttpStatus())
                 .body(ApiResponse.error(CommonErrorCode.VALIDATION_ERROR.getCode(), message));
     }
