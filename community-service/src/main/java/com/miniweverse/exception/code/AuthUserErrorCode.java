@@ -16,7 +16,8 @@ public enum AuthUserErrorCode implements ErrorCode {
     TOKEN_EXPIRED("AUTH_USER_009", "액세스 토큰이 만료되었습니다.", HttpStatus.UNAUTHORIZED),
     INVALID_TOKEN("AUTH_USER_010", "유효하지 않은 토큰입니다.", HttpStatus.UNAUTHORIZED),
     AUTHENTICATION_REQUIRED("AUTH_USER_011", "인증이 필요합니다.", HttpStatus.UNAUTHORIZED),
-    NOT_FOLLOWING_ARTIST("AUTH_USER_012", "팔로우한 아티스트만 조회할 수 있습니다.", HttpStatus.FORBIDDEN);
+    NOT_FOLLOWING_ARTIST("AUTH_USER_012", "팔로우한 아티스트만 조회할 수 있습니다.", HttpStatus.FORBIDDEN),
+    MEMBERSHIP_REQUIRED("AUTH_USER_013", "멤버십 구독자만 볼 수 있는 게시글입니다.", HttpStatus.FORBIDDEN);
 
     private final String code;
     private final String message;

@@ -2,13 +2,16 @@ package com.miniweverse.post.service;
 
 import com.miniweverse.common.response.CursorPageResponse;
 import com.miniweverse.exception.AuthUserExceptions.InvalidRequestException;
+import com.miniweverse.exception.AuthUserExceptions.MembershipRequiredException;
 import com.miniweverse.follow.repository.FollowRepository;
+import com.miniweverse.membership.repository.MembershipRepository;
 import com.miniweverse.post.dto.PostResponse;
 import com.miniweverse.post.entity.Post;
 import com.miniweverse.post.enums.BoardType;
 import com.miniweverse.post.repository.PostRepository;
 import com.miniweverse.user.entity.ArtistProfile;
 import com.miniweverse.user.entity.User;
+import com.miniweverse.user.enums.MembershipStatus;
 import com.miniweverse.user.repository.ArtistProfileRepository;
 import com.miniweverse.user.repository.UserRepository;
 import java.util.List;
@@ -24,6 +27,7 @@ public class PostService {
     private final UserRepository userRepository;
     private final ArtistProfileRepository artistProfileRepository;
     private final FollowRepository followRepository;
+    private final MembershipRepository membershipRepository;
     private final PostCacheService postCacheService;
 
     public PostService(
@@ -31,12 +35,14 @@ public class PostService {
             UserRepository userRepository,
             ArtistProfileRepository artistProfileRepository,
             FollowRepository followRepository,
+            MembershipRepository membershipRepository,
             PostCacheService postCacheService
     ) {
         this.postRepository = postRepository;
         this.userRepository = userRepository;
         this.artistProfileRepository = artistProfileRepository;
         this.followRepository = followRepository;
+        this.membershipRepository = membershipRepository;
         this.postCacheService = postCacheService;
     }
 
@@ -56,10 +62,19 @@ public class PostService {
         return post;
     }
 
+    /**
+     * 목록과 달리 단건 조회에서 멤버십 전용 글에 접근 권한이 없으면 마스킹된 값을 주지 않고
+     * 바로 403(MEMBERSHIP_REQUIRED)으로 막는다 — 목록에서 이미 잠긴 글인 걸 보여준 뒤라, 단건
+     * 조회는 "그래서 볼 수 있냐 없냐"를 명확히 알려주는 편이 낫다고 판단했다.
+     */
     @Transactional(readOnly = true)
-    public Post getById(Long postId) {
-        return postRepository.findByIdWithDetails(postId)
+    public PostResponse getById(Long viewerId, Long postId) {
+        Post post = postRepository.findByIdWithDetails(postId)
                 .orElseThrow(() -> new InvalidRequestException("게시글을 찾을 수 없습니다."));
+        if (post.isMembersOnly() && !hasFullAccess(viewerId, post.getArtistProfile())) {
+            throw new MembershipRequiredException();
+        }
+        return PostResponse.from(post);
     }
 
     @Transactional
@@ -93,21 +108,42 @@ public class PostService {
      */
     @Transactional(readOnly = true)
     public CursorPageResponse<PostResponse> getByArtistAndBoardType(
-            Long artistProfileId, BoardType boardType, Long cursor, int size
+            Long viewerId, Long artistProfileId, BoardType boardType, Long cursor, int size
     ) {
         ArtistProfile artistProfile = artistProfileRepository.findById(artistProfileId)
                 .orElseThrow(() -> new InvalidRequestException("아티스트 프로필을 찾을 수 없습니다."));
 
+        boolean hasFullAccess = hasFullAccess(viewerId, artistProfile);
+
+        List<PostResponse> fetched;
         if (cursor == null) {
-            List<PostResponse> cached = postCacheService.getCachedPosts(artistProfile, boardType);
-            return CursorPageResponse.of(cached, size, PostResponse::postId);
+            fetched = postCacheService.getCachedPosts(artistProfile, boardType);
+        } else {
+            fetched = postRepository.findByArtistProfileAndBoardTypeAndCursor(
+                            artistProfile, boardType, cursor, PageRequest.of(0, size + 1))
+                    .stream()
+                    .map(PostResponse::from)
+                    .toList();
         }
 
-        List<PostResponse> fetched = postRepository.findByArtistProfileAndBoardTypeAndCursor(
-                        artistProfile, boardType, cursor, PageRequest.of(0, size + 1))
-                .stream()
-                .map(PostResponse::from)
+        List<PostResponse> masked = fetched.stream()
+                .map(response -> response.membersOnly() && !hasFullAccess ? response.mask() : response)
                 .toList();
-        return CursorPageResponse.of(fetched, size, PostResponse::postId);
+        return CursorPageResponse.of(masked, size, PostResponse::postId);
+    }
+
+    /**
+     * 멤버십 전용 글을 잠금 없이 볼 수 있는지 — 본인(아티스트) 또는 활성 구독자면 true.
+     * artistProfile이 null(작성 당시 아티스트가 이미 탈퇴 등)이면 판단 불가하므로 접근을 허용하지 않는다.
+     */
+    private boolean hasFullAccess(Long viewerId, ArtistProfile artistProfile) {
+        if (viewerId == null || artistProfile == null) {
+            return false;
+        }
+        User artistUser = artistProfile.getUser();
+        if (artistUser != null && Objects.equals(viewerId, artistUser.getId())) {
+            return true;
+        }
+        return membershipRepository.existsBySubscriberIdAndArtistAndStatus(viewerId, artistProfile, MembershipStatus.ACTIVE);
     }
 }

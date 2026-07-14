@@ -45,18 +45,21 @@ public class PostController {
 
     @GetMapping("/artists/{artistId}/posts")
     public ResponseEntity<CursorPageResponse<PostResponse>> list(
+            @AuthenticationPrincipal Long viewerId,
             @PathVariable Long artistId,
             @RequestParam BoardType boardType,
             @RequestParam(required = false) Long cursor,
             @RequestParam(defaultValue = "20") @Min(1) @Max(50) int size
     ) {
-        return ResponseEntity.ok(postService.getByArtistAndBoardType(artistId, boardType, cursor, size));
+        return ResponseEntity.ok(postService.getByArtistAndBoardType(viewerId, artistId, boardType, cursor, size));
     }
 
     @GetMapping("/posts/{postId}")
-    public ResponseEntity<PostResponse> get(@PathVariable Long postId) {
-        Post post = postService.getById(postId);
-        return ResponseEntity.ok(PostResponse.from(post));
+    public ResponseEntity<PostResponse> get(
+            @AuthenticationPrincipal Long viewerId,
+            @PathVariable Long postId
+    ) {
+        return ResponseEntity.ok(postService.getById(viewerId, postId));
     }
 
     @PatchMapping("/posts/{postId}")

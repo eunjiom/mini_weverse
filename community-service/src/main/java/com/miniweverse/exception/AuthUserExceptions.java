@@ -65,4 +65,10 @@ public final class AuthUserExceptions {
             super(AuthUserErrorCode.NOT_FOLLOWING_ARTIST);
         }
     }
+
+    public static class MembershipRequiredException extends BusinessException {
+        public MembershipRequiredException() {
+            super(AuthUserErrorCode.MEMBERSHIP_REQUIRED);
+        }
+    }
 }
