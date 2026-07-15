@@ -40,6 +40,9 @@ public class SecurityConfig {
                         // JwtHandshakeInterceptor(쿠키 기반)가 별도로 인증한다.
                         .requestMatchers("/api/chat/ws-chat").permitAll()
                         .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
+                        // 다른 내부 서비스(community-service 등)가 게이트웨이를 거치지 않고 직접
+                        // 호출하는 서비스 간 전용 API. 유저 JWT가 없는 호출이라 내부망 신뢰 전제로 permitAll.
+                        .requestMatchers("/internal/**").permitAll()
                         .anyRequest().authenticated())
                 .exceptionHandling(ex -> ex.authenticationEntryPoint(jwtAuthenticationEntryPoint))
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

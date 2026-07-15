@@ -34,3 +34,6 @@ jwt:
 
 cookie:
   secure: true
+
+chat-service:
+  base-url: http://localhost:8082

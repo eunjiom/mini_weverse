@@ -19,9 +19,12 @@ public class MembershipVerifier {
             return cached;
         }
         boolean active = membershipClient.isActive(fanUserId, artistId);
-        if (active) {
-            membershipCache.putActive(fanUserId, artistId);
-        }
+        membershipCache.put(fanUserId, artistId, active);
         return active;
+    }
+
+    /** community-service가 구독 성공 직후 호출 — 캐시된 false를 자정까지 기다리지 않고 즉시 정정한다. */
+    public void markActive(Long fanUserId, Long artistId) {
+        membershipCache.put(fanUserId, artistId, true);
     }
 }
