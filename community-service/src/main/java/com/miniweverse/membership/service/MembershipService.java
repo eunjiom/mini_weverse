@@ -87,6 +87,11 @@ public class MembershipService {
         membership.cancel();
     }
 
+    @Transactional(readOnly = true)
+    public boolean isActive(Long subscriberId, Long artistId) {
+        return membershipRepository.existsBySubscriberIdAndArtistIdAndStatus(subscriberId, artistId, MembershipStatus.ACTIVE);
+    }
+
     /**
      * 매일 자정 배치가 호출 — 만료일이 지난 ACTIVE 구독을 EXPIRED로 전환한다.
      */
