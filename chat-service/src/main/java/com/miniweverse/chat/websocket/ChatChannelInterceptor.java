@@ -18,8 +18,9 @@ import org.springframework.stereotype.Component;
  * 아티스트인지는 JWT의 role 클레임이 아니라 ChatRoom.ownerUserId와 실제로 일치하는지로 판단한다
  * (역할 자기신고보다 리소스 소유 여부가 더 신뢰할 수 있는 판단 기준).
  *
- * SEND는 추가로 도배 방지 제한을 건다 — 이건 보안 위반이 아니라 속도 문제라, 인가 실패처럼
- * 예외를 던져 연결을 끊지 않고 그 메시지 하나만 조용히 버린다(null 반환).
+ * 팬의 fan-message SEND는 추가로 하루 5개 한도를 건다(위버스 DM 방식) — 이건 보안 위반이
+ * 아니라 정책적 한도라, 예외를 던져 연결을 끊지 않고 그 메시지 하나만 조용히 버린다(null 반환).
+ * 아티스트의 방송(artist-message)에는 이 한도가 없다.
  */
 @Component
 public class ChatChannelInterceptor implements ChannelInterceptor {
@@ -28,16 +29,16 @@ public class ChatChannelInterceptor implements ChannelInterceptor {
 
     private final ChatRoomRepository chatRoomRepository;
     private final MembershipVerifier membershipVerifier;
-    private final MessageRateLimiter messageRateLimiter;
+    private final FanMessageDailyQuota fanMessageDailyQuota;
 
     public ChatChannelInterceptor(
             ChatRoomRepository chatRoomRepository,
             MembershipVerifier membershipVerifier,
-            MessageRateLimiter messageRateLimiter
+            FanMessageDailyQuota fanMessageDailyQuota
     ) {
         this.chatRoomRepository = chatRoomRepository;
         this.membershipVerifier = membershipVerifier;
-        this.messageRateLimiter = messageRateLimiter;
+        this.fanMessageDailyQuota = fanMessageDailyQuota;
     }
 
     @Override
@@ -52,7 +53,8 @@ public class ChatChannelInterceptor implements ChannelInterceptor {
             return message;
         }
 
-        Long artistId = extractArtistId(accessor.getDestination());
+        String destination = accessor.getDestination();
+        Long artistId = extractArtistId(destination);
         if (artistId == null) {
             return message;
         }
@@ -62,7 +64,8 @@ public class ChatChannelInterceptor implements ChannelInterceptor {
             throw new AccessDeniedException("이 채팅방에 접근할 권한이 없습니다.");
         }
 
-        if (command == StompCommand.SEND && !messageRateLimiter.tryAcquire(principal.userId())) {
+        if (command == StompCommand.SEND && destination.endsWith("/fan-message")
+                && !fanMessageDailyQuota.tryAcquire(principal.userId(), artistId)) {
             return null;
         }
 
