@@ -54,28 +54,16 @@ public class ChatMessageService {
     }
 
     /**
-     * 팬이 조회하면 본인 스레드(fanUserIdFilter 무시, viewerId 사용), 아티스트(방 소유주)가 조회하면
-     * 어느 팬의 스레드인지 fanUserIdFilter로 반드시 지정해야 한다 — 한 방 안에 팬별로 스레드가 갈리기 때문.
+     * 팬 본인의 스레드 조회 전용 — 아티스트가 특정 팬의 대화를 조회/검색하는 기능은 요청받은 적
+     * 없어서 만들지 않는다(팬 입장에서 "내 채팅 화면 열기"만 지원).
      */
     @Transactional(readOnly = true)
-    public List<ChatMessageResponse> getMessages(Long artistId, Long viewerId, Long fanUserIdFilter) {
+    public List<ChatMessageResponse> getMyMessages(Long artistId, Long fanUserId) {
         ChatRoom room = getRoom(artistId);
-        boolean viewerIsOwner = room.getOwnerUserId().equals(viewerId);
-
-        Long targetFanId;
-        if (viewerIsOwner) {
-            if (fanUserIdFilter == null) {
-                throw new InvalidRequestException("아티스트는 조회할 팬(fanId)을 지정해야 합니다.");
-            }
-            targetFanId = fanUserIdFilter;
-        } else {
-            if (!membershipVerifier.isActiveMember(viewerId, artistId)) {
-                throw new MembershipRequiredException();
-            }
-            targetFanId = viewerId;
+        if (!membershipVerifier.isActiveMember(fanUserId, artistId)) {
+            throw new MembershipRequiredException();
         }
-
-        return chatMessageRepository.findVisibleMessages(room.getId(), targetFanId).stream()
+        return chatMessageRepository.findVisibleMessages(room.getId(), fanUserId).stream()
                 .map(ChatMessageResponse::from)
                 .toList();
     }
