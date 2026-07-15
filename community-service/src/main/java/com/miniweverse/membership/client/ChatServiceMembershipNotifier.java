@@ -28,7 +28,7 @@ public class ChatServiceMembershipNotifier {
             restClient.post()
                     .uri("/internal/memberships/active")
                     .contentType(MediaType.APPLICATION_JSON)
-                    .body(new ActivatedPayload(fanUserId, artistId))
+                    .body(new MembershipEventPayload(fanUserId, artistId))
                     .retrieve()
                     .toBodilessEntity();
         } catch (RestClientException e) {
@@ -36,6 +36,20 @@ public class ChatServiceMembershipNotifier {
         }
     }
 
-    private record ActivatedPayload(Long fanUserId, Long artistId) {
+    /** 자정 배치가 멤버십을 만료시킬 때 호출 — chat-service가 실시간 메시지 전달을 그 즉시 끊을 수 있게 알려준다. */
+    public void notifyExpired(Long fanUserId, Long artistId) {
+        try {
+            restClient.post()
+                    .uri("/internal/memberships/expired")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(new MembershipEventPayload(fanUserId, artistId))
+                    .retrieve()
+                    .toBodilessEntity();
+        } catch (RestClientException e) {
+            // 배치 자체는 계속 진행한다 — 이 알림은 chat-service의 실시간 캐시 정정용일 뿐, DB 상태는 이미 EXPIRED로 확정됨.
+        }
+    }
+
+    private record MembershipEventPayload(Long fanUserId, Long artistId) {
     }
 }

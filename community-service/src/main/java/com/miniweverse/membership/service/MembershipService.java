@@ -94,10 +94,13 @@ public class MembershipService {
 
     /**
      * 매일 자정 배치가 호출 — 만료일이 지난 ACTIVE 구독을 EXPIRED로 전환한다.
+     * 호출자(스케줄러)가 이 메서드(트랜잭션) 반환 후에 chat-service로 만료 알림을 보낼 수 있도록,
+     * 방금 만료시킨 목록을 그대로 반환한다.
      */
     @Transactional
-    public void expireOverdueMemberships(LocalDateTime now) {
+    public List<Membership> expireOverdueMemberships(LocalDateTime now) {
         List<Membership> overdue = membershipRepository.findByStatusAndExpiresAtBefore(MembershipStatus.ACTIVE, now);
         overdue.forEach(Membership::expire);
+        return overdue;
     }
 }

@@ -3,6 +3,7 @@ package com.miniweverse.chat.config;
 import com.miniweverse.auth.jwt.JwtTokenProvider;
 import com.miniweverse.chat.websocket.ChatChannelInterceptor;
 import com.miniweverse.chat.websocket.ChatHandshakeHandler;
+import com.miniweverse.chat.websocket.ChatOutboundChannelInterceptor;
 import com.miniweverse.chat.websocket.JwtHandshakeInterceptor;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.messaging.simp.config.ChannelRegistration;
@@ -17,10 +18,16 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     private final JwtTokenProvider jwtTokenProvider;
     private final ChatChannelInterceptor chatChannelInterceptor;
+    private final ChatOutboundChannelInterceptor chatOutboundChannelInterceptor;
 
-    public WebSocketConfig(JwtTokenProvider jwtTokenProvider, ChatChannelInterceptor chatChannelInterceptor) {
+    public WebSocketConfig(
+            JwtTokenProvider jwtTokenProvider,
+            ChatChannelInterceptor chatChannelInterceptor,
+            ChatOutboundChannelInterceptor chatOutboundChannelInterceptor
+    ) {
         this.jwtTokenProvider = jwtTokenProvider;
         this.chatChannelInterceptor = chatChannelInterceptor;
+        this.chatOutboundChannelInterceptor = chatOutboundChannelInterceptor;
     }
 
     @Override
@@ -42,5 +49,10 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     @Override
     public void configureClientInboundChannel(ChannelRegistration registration) {
         registration.interceptors(chatChannelInterceptor);
+    }
+
+    @Override
+    public void configureClientOutboundChannel(ChannelRegistration registration) {
+        registration.interceptors(chatOutboundChannelInterceptor);
     }
 }
