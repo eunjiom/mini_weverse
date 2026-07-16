@@ -1,8 +1,11 @@
 package com.miniweverse.chat.membership;
 
 import com.miniweverse.common.security.InternalServiceAuthFilter;
+import java.time.Duration;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
+import org.springframework.util.Assert;
 import org.springframework.web.client.RestClient;
 
 /**
@@ -13,6 +16,9 @@ import org.springframework.web.client.RestClient;
 @Component
 public class MembershipClient {
 
+    private static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(2);
+    private static final Duration READ_TIMEOUT = Duration.ofSeconds(3);
+
     private final RestClient restClient;
     private final String internalServiceSecret;
 
@@ -20,7 +26,14 @@ public class MembershipClient {
             @Value("${community-service.base-url}") String baseUrl,
             @Value("${internal.service-secret}") String internalServiceSecret
     ) {
-        this.restClient = RestClient.create(baseUrl);
+        Assert.hasText(internalServiceSecret, "internal.service-secret must not be blank");
+        SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
+        requestFactory.setConnectTimeout(CONNECT_TIMEOUT);
+        requestFactory.setReadTimeout(READ_TIMEOUT);
+        this.restClient = RestClient.builder()
+                .baseUrl(baseUrl)
+                .requestFactory(requestFactory)
+                .build();
         this.internalServiceSecret = internalServiceSecret;
     }
 

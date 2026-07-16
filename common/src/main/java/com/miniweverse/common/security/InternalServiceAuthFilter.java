@@ -8,6 +8,9 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.util.Assert;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 /**
@@ -24,10 +27,14 @@ public class InternalServiceAuthFilter extends OncePerRequestFilter {
     public static final String SECRET_HEADER_NAME = "X-Internal-Secret";
 
     private static final String INTERNAL_PATH_PREFIX = "/internal/";
+    private static final Logger log = LoggerFactory.getLogger(InternalServiceAuthFilter.class);
 
     private final String expectedSecret;
 
     public InternalServiceAuthFilter(String expectedSecret) {
+        // 시크릿이 빈 값이면 MessageDigest.isEqual("", "")가 true를 반환해서 인증이 무력화되므로,
+        // 그런 설정으로는 아예 기동되지 않게 막는다.
+        Assert.hasText(expectedSecret, "internal.service-secret must not be blank");
         this.expectedSecret = expectedSecret;
     }
 
@@ -41,6 +48,8 @@ public class InternalServiceAuthFilter extends OncePerRequestFilter {
             filterChain.doFilter(request, response);
             return;
         }
+        log.warn("Rejected internal API call with invalid secret: {} {} from {}",
+                request.getMethod(), request.getRequestURI(), request.getRemoteAddr());
         response.setStatus(CommonErrorCode.UNAUTHORIZED.getHttpStatus().value());
     }
 

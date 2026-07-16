@@ -20,7 +20,7 @@ community-service:
   base-url: http://localhost:8081
 
 internal:
-  service-secret: mini-weverse-internal-secret
+  service-secret: ${INTERNAL_SERVICE_SECRET:mini-weverse-internal-secret}
 
 chat:
   websocket:
