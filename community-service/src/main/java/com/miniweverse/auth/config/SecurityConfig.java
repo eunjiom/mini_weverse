@@ -4,6 +4,8 @@ import com.miniweverse.auth.jwt.JwtAuthenticationEntryPoint;
 import com.miniweverse.auth.jwt.JwtAuthenticationFilter;
 import com.miniweverse.auth.jwt.JwtTokenProvider;
 import com.miniweverse.auth.oauth.KakaoLoginSuccessHandler;
+import com.miniweverse.common.security.InternalServiceAuthFilter;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
@@ -29,15 +31,18 @@ public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
     private final KakaoLoginSuccessHandler kakaoLoginSuccessHandler;
+    private final InternalServiceAuthFilter internalServiceAuthFilter;
 
     public SecurityConfig(
             JwtTokenProvider jwtTokenProvider,
             JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint,
-            KakaoLoginSuccessHandler kakaoLoginSuccessHandler
+            KakaoLoginSuccessHandler kakaoLoginSuccessHandler,
+            @Value("${internal.service-secret}") String internalServiceSecret
     ) {
         this.jwtAuthenticationFilter = new JwtAuthenticationFilter(jwtTokenProvider);
         this.jwtAuthenticationEntryPoint = jwtAuthenticationEntryPoint;
         this.kakaoLoginSuccessHandler = kakaoLoginSuccessHandler;
+        this.internalServiceAuthFilter = new InternalServiceAuthFilter(internalServiceSecret);
     }
 
     @Bean
@@ -74,7 +79,8 @@ public class SecurityConfig {
                 .oauth2Login(oauth2 -> oauth2.successHandler(kakaoLoginSuccessHandler))
                 // 기본 LogoutFilter가 POST /logout을 가로채 리다이렉트시키는 걸 막고, AuthController.logout()만 쓴다.
                 .logout(AbstractHttpConfigurer::disable)
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(internalServiceAuthFilter, JwtAuthenticationFilter.class);
         return http.build();
     }
 }

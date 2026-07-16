@@ -9,7 +9,8 @@ public enum CommonErrorCode implements ErrorCode {
 
     VALIDATION_ERROR("COMMON_001", "요청 값이 올바르지 않습니다.", HttpStatus.BAD_REQUEST),
     INTERNAL_SERVER_ERROR("COMMON_002", "서버 내부 오류가 발생했습니다.", HttpStatus.INTERNAL_SERVER_ERROR),
-    NOT_FOUND("COMMON_003", "존재하지 않는 경로입니다.", HttpStatus.NOT_FOUND);
+    NOT_FOUND("COMMON_003", "존재하지 않는 경로입니다.", HttpStatus.NOT_FOUND),
+    UNAUTHORIZED("COMMON_004", "인증이 필요합니다.", HttpStatus.UNAUTHORIZED);
 
     private final String code;
     private final String message;

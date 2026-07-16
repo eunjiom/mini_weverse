@@ -3,6 +3,8 @@ package com.miniweverse.auth.config;
 import com.miniweverse.auth.jwt.JwtAuthenticationEntryPoint;
 import com.miniweverse.auth.jwt.JwtAuthenticationFilter;
 import com.miniweverse.auth.jwt.JwtTokenProvider;
+import com.miniweverse.common.security.InternalServiceAuthFilter;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -23,10 +25,16 @@ public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
+    private final InternalServiceAuthFilter internalServiceAuthFilter;
 
-    public SecurityConfig(JwtTokenProvider jwtTokenProvider, JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint) {
+    public SecurityConfig(
+            JwtTokenProvider jwtTokenProvider,
+            JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint,
+            @Value("${internal.service-secret}") String internalServiceSecret
+    ) {
         this.jwtAuthenticationFilter = new JwtAuthenticationFilter(jwtTokenProvider);
         this.jwtAuthenticationEntryPoint = jwtAuthenticationEntryPoint;
+        this.internalServiceAuthFilter = new InternalServiceAuthFilter(internalServiceSecret);
     }
 
     @Bean
@@ -45,7 +53,8 @@ public class SecurityConfig {
                         .requestMatchers("/internal/**").permitAll()
                         .anyRequest().authenticated())
                 .exceptionHandling(ex -> ex.authenticationEntryPoint(jwtAuthenticationEntryPoint))
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(internalServiceAuthFilter, JwtAuthenticationFilter.class);
         return http.build();
     }
 }

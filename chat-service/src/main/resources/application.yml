@@ -19,6 +19,9 @@ jwt:
 community-service:
   base-url: http://localhost:8081
 
+internal:
+  service-secret: mini-weverse-internal-secret
+
 chat:
   websocket:
     allowed-origins: http://localhost:*
