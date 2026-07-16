@@ -26,6 +26,8 @@ import org.springframework.stereotype.Component;
 public class ChatChannelInterceptor implements ChannelInterceptor {
 
     private static final Pattern ROOM_DESTINATION_PATTERN = Pattern.compile("/(?:topic|app)/rooms/(\\d+)(?:/.*)?");
+    private static final Pattern SEND_DESTINATION_PATTERN =
+            Pattern.compile("/app/rooms/\\d+/(?:fan-message|artist-message)");
 
     private final ChatRoomRepository chatRoomRepository;
     private final MembershipVerifier membershipVerifier;
@@ -57,6 +59,13 @@ public class ChatChannelInterceptor implements ChannelInterceptor {
         Long artistId = extractArtistId(destination);
         if (artistId == null) {
             return message;
+        }
+
+        // SimpleBroker는 /topic으로 SEND된 프레임도 ChatMessageStompController를 거치지 않고
+        // 그대로 구독자에게 릴레이한다. 방송(broadcast) 토픽으로의 직접 SEND를 막지 않으면
+        // 권한 재검증·도배 방지·XSS 정제(ChatMessageService)가 전부 우회된다.
+        if (command == StompCommand.SEND && !SEND_DESTINATION_PATTERN.matcher(destination).matches()) {
+            throw new AccessDeniedException("이 채팅방에 접근할 권한이 없습니다.");
         }
 
         ChatPrincipal principal = accessor.getUser() instanceof ChatPrincipal chatPrincipal ? chatPrincipal : null;

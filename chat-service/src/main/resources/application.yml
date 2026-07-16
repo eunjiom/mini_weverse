@@ -18,3 +18,7 @@ jwt:
 
 community-service:
   base-url: http://localhost:8081
+
+chat:
+  websocket:
+    allowed-origins: http://localhost:*

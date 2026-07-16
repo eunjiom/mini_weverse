@@ -56,7 +56,7 @@ public class ChatOutboundChannelInterceptor implements ChannelInterceptor {
         String sessionId = accessor.getSessionId();
         Long userId = sessionId != null ? sessionUserRegistry.getUserId(sessionId) : null;
         if (userId == null) {
-            return message;
+            return null;
         }
 
         if (isRoomOwner(userId, artistId) || membershipVerifier.isActiveMember(userId, artistId)) {

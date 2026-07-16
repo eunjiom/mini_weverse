@@ -53,7 +53,12 @@ public class JwtHandshakeInterceptor implements HandshakeInterceptor {
                 response.setStatusCode(HttpStatus.UNAUTHORIZED);
                 return false;
             }
-            Role role = Role.valueOf(claims.get("role", String.class));
+            String roleClaim = claims.get("role", String.class);
+            if (roleClaim == null) {
+                response.setStatusCode(HttpStatus.UNAUTHORIZED);
+                return false;
+            }
+            Role role = Role.valueOf(roleClaim);
             if (!ALLOWED_ROLES.contains(role)) {
                 response.setStatusCode(HttpStatus.FORBIDDEN);
                 return false;

@@ -25,6 +25,9 @@ public class AuthService {
 
     private static final String REFRESH_TOKEN_COOKIE_NAME = "refreshToken";
     private static final String ACCESS_TOKEN_COOKIE_NAME = "accessToken";
+    // accessToken 쿠키는 WebSocket 핸드셰이크(/api/chat/ws-chat)에서만 읽힌다 — 다른 모든 요청은
+    // Authorization 헤더를 쓰므로, 불필요하게 매 요청마다 실려가지 않도록 경로를 좁혀둔다.
+    private static final String ACCESS_TOKEN_COOKIE_PATH = "/api/chat/ws-chat";
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
@@ -133,7 +136,7 @@ public class AuthService {
         return ResponseCookie.from(ACCESS_TOKEN_COOKIE_NAME, "")
                 .httpOnly(true)
                 .secure(cookieSecure)
-                .path("/")
+                .path(ACCESS_TOKEN_COOKIE_PATH)
                 .maxAge(0)
                 .sameSite("Lax")
                 .build();
@@ -176,7 +179,7 @@ public class AuthService {
         return ResponseCookie.from(ACCESS_TOKEN_COOKIE_NAME, accessToken)
                 .httpOnly(true)
                 .secure(cookieSecure)
-                .path("/")
+                .path(ACCESS_TOKEN_COOKIE_PATH)
                 .maxAge(Duration.ofMillis(jwtProperties.accessTokenValidity()))
                 .sameSite("Lax")
                 .build();

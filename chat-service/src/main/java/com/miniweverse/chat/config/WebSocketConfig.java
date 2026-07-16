@@ -5,6 +5,7 @@ import com.miniweverse.chat.websocket.ChatChannelInterceptor;
 import com.miniweverse.chat.websocket.ChatHandshakeHandler;
 import com.miniweverse.chat.websocket.ChatOutboundChannelInterceptor;
 import com.miniweverse.chat.websocket.JwtHandshakeInterceptor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.messaging.simp.config.ChannelRegistration;
 import org.springframework.messaging.simp.config.MessageBrokerRegistry;
@@ -19,15 +20,18 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     private final JwtTokenProvider jwtTokenProvider;
     private final ChatChannelInterceptor chatChannelInterceptor;
     private final ChatOutboundChannelInterceptor chatOutboundChannelInterceptor;
+    private final String[] allowedOriginPatterns;
 
     public WebSocketConfig(
             JwtTokenProvider jwtTokenProvider,
             ChatChannelInterceptor chatChannelInterceptor,
-            ChatOutboundChannelInterceptor chatOutboundChannelInterceptor
+            ChatOutboundChannelInterceptor chatOutboundChannelInterceptor,
+            @Value("${chat.websocket.allowed-origins:http://localhost:*}") String allowedOrigins
     ) {
         this.jwtTokenProvider = jwtTokenProvider;
         this.chatChannelInterceptor = chatChannelInterceptor;
         this.chatOutboundChannelInterceptor = chatOutboundChannelInterceptor;
+        this.allowedOriginPatterns = allowedOrigins.split(",");
     }
 
     @Override
@@ -39,11 +43,11 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
-        // TODO: 프론트 도메인이 정해지면 allowed origin을 실제 도메인으로 좁힌다 (Cross-Site WebSocket Hijacking 방어).
+        // 프론트 도메인이 정해지면 chat.websocket.allowed-origins 설정값만 바꾸면 된다 (Cross-Site WebSocket Hijacking 방어).
         registry.addEndpoint("/api/chat/ws-chat")
                 .addInterceptors(new JwtHandshakeInterceptor(jwtTokenProvider))
                 .setHandshakeHandler(new ChatHandshakeHandler())
-                .setAllowedOriginPatterns("http://localhost:*");
+                .setAllowedOriginPatterns(allowedOriginPatterns);
     }
 
     @Override

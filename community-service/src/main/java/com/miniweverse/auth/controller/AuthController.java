@@ -76,6 +76,9 @@ public class AuthController {
             HttpServletRequest request,
             HttpServletResponse response
     ) {
+        response.addHeader(HttpHeaders.SET_COOKIE, authService.expiredRefreshTokenCookie().toString());
+        response.addHeader(HttpHeaders.SET_COOKIE, authService.expiredAccessTokenCookie().toString());
+
         HttpSession session = request.getSession(false);
         if (session != null && session.getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY) != null) {
             session.invalidate();
@@ -85,8 +88,6 @@ public class AuthController {
         if (refreshToken != null && !refreshToken.isBlank()) {
             authService.logoutByRefreshToken(refreshToken);
         }
-        response.addHeader(HttpHeaders.SET_COOKIE, authService.expiredRefreshTokenCookie().toString());
-        response.addHeader(HttpHeaders.SET_COOKIE, authService.expiredAccessTokenCookie().toString());
         return ResponseEntity.ok().build();
     }
 
