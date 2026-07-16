@@ -3,6 +3,8 @@ package com.miniweverse.membership.service;
 import com.miniweverse.exception.AuthUserExceptions.InvalidRequestException;
 import com.miniweverse.membership.dto.MyMembershipResponse;
 import com.miniweverse.membership.entity.Membership;
+import com.miniweverse.membership.outbox.MembershipOutboxEvent;
+import com.miniweverse.membership.outbox.MembershipOutboxEventRepository;
 import com.miniweverse.membership.repository.MembershipRepository;
 import com.miniweverse.user.entity.ArtistProfile;
 import com.miniweverse.user.entity.User;
@@ -23,15 +25,18 @@ public class MembershipService {
     private final MembershipRepository membershipRepository;
     private final UserRepository userRepository;
     private final ArtistProfileRepository artistProfileRepository;
+    private final MembershipOutboxEventRepository outboxEventRepository;
 
     public MembershipService(
             MembershipRepository membershipRepository,
             UserRepository userRepository,
-            ArtistProfileRepository artistProfileRepository
+            ArtistProfileRepository artistProfileRepository,
+            MembershipOutboxEventRepository outboxEventRepository
     ) {
         this.membershipRepository = membershipRepository;
         this.userRepository = userRepository;
         this.artistProfileRepository = artistProfileRepository;
+        this.outboxEventRepository = outboxEventRepository;
     }
 
     @Transactional
@@ -47,12 +52,16 @@ public class MembershipService {
         // findBySubscriberAndArtist는 PESSIMISTIC_WRITE 락을 걸기 때문에, 동시에 들어온
         // 같은 (subscriber, artist) 요청은 여기서 순서대로 직렬화된다.
         LocalDateTime now = LocalDateTime.now();
-        return membershipRepository.findBySubscriberAndArtist(subscriber, artistProfile)
-                .map(membership -> {
-                    membership.renew(now);
-                    return membership;
+        Membership membership = membershipRepository.findBySubscriberAndArtist(subscriber, artistProfile)
+                .map(existing -> {
+                    existing.renew(now);
+                    return existing;
                 })
                 .orElseGet(() -> createOrRenew(subscriber, artistProfile, now));
+        // chat-service 알림을 이 트랜잭션과 같이 커밋되는 아웃박스에 적재한다 — 알림 전송 자체가
+        // 실패해도 구독 상태 변경과 분리되어 유실되지 않고, MembershipOutboxPublisher가 재시도한다.
+        outboxEventRepository.save(MembershipOutboxEvent.activated(subscriber.getId(), artistProfile.getId()));
+        return membership;
     }
 
     private Membership createOrRenew(User subscriber, ArtistProfile artist, LocalDateTime now) {
@@ -93,14 +102,19 @@ public class MembershipService {
     }
 
     /**
-     * 매일 자정 배치가 호출 — 만료일이 지난 ACTIVE 구독을 EXPIRED로 전환한다.
-     * 호출자(스케줄러)가 이 메서드(트랜잭션) 반환 후에 chat-service로 만료 알림을 보낼 수 있도록,
-     * 방금 만료시킨 목록을 그대로 반환한다.
+     * 매일 자정 배치가 호출 — 만료일이 지난 ACTIVE 구독을 EXPIRED로 전환하고, 같은 트랜잭션에서
+     * chat-service 만료 알림을 아웃박스에 적재한다(MembershipOutboxPublisher가 실제 전송/재시도).
      */
     @Transactional
     public List<Membership> expireOverdueMemberships(LocalDateTime now) {
         List<Membership> overdue = membershipRepository.findByStatusAndExpiresAtBefore(MembershipStatus.ACTIVE, now);
         overdue.forEach(Membership::expire);
+        overdue.forEach(membership -> {
+            ArtistProfile artist = membership.getArtist();
+            if (artist != null) {
+                outboxEventRepository.save(MembershipOutboxEvent.expired(membership.getSubscriber().getId(), artist.getId()));
+            }
+        });
         return overdue;
     }
 }

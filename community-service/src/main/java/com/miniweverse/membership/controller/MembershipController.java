@@ -1,6 +1,5 @@
 package com.miniweverse.membership.controller;
 
-import com.miniweverse.membership.client.ChatServiceMembershipNotifier;
 import com.miniweverse.membership.dto.MembershipResponse;
 import com.miniweverse.membership.dto.MyMembershipResponse;
 import com.miniweverse.membership.dto.SubscribeRequest;
@@ -20,11 +19,9 @@ import org.springframework.web.bind.annotation.RestController;
 public class MembershipController {
 
     private final MembershipService membershipService;
-    private final ChatServiceMembershipNotifier chatServiceMembershipNotifier;
 
-    public MembershipController(MembershipService membershipService, ChatServiceMembershipNotifier chatServiceMembershipNotifier) {
+    public MembershipController(MembershipService membershipService) {
         this.membershipService = membershipService;
-        this.chatServiceMembershipNotifier = chatServiceMembershipNotifier;
     }
 
     @GetMapping("/memberships")
@@ -39,9 +36,9 @@ public class MembershipController {
             @AuthenticationPrincipal Long subscriberId,
             @Valid @RequestBody SubscribeRequest request
     ) {
+        // chat-service 알림은 MembershipService.subscribe()가 같은 트랜잭션에서 아웃박스에 적재하고,
+        // MembershipOutboxPublisher가 별도로 전송/재시도한다.
         Membership membership = membershipService.subscribe(subscriberId, request.artistId());
-        // 서비스 메서드가 커밋까지 끝난 뒤(트랜잭션 프록시 반환 후) 호출 — 롤백된 구독을 활성으로 잘못 캐싱하지 않도록.
-        chatServiceMembershipNotifier.notifyActivated(subscriberId, request.artistId());
         return ResponseEntity.ok(MembershipResponse.from(membership));
     }
 
