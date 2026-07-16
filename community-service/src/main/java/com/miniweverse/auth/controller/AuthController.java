@@ -49,6 +49,7 @@ public class AuthController {
         if (result instanceof LoginResult.UserLoginResult userLogin) {
             return ResponseEntity.ok()
                     .header(HttpHeaders.SET_COOKIE, userLogin.refreshTokenCookie().toString())
+                    .header(HttpHeaders.SET_COOKIE, userLogin.accessTokenCookie().toString())
                     .header(HttpHeaders.AUTHORIZATION, "Bearer " + userLogin.accessToken())
                     .body(new TokenResponse(userLogin.accessToken()));
         }
@@ -64,6 +65,7 @@ public class AuthController {
         LoginResult.UserLoginResult result = authService.reissue(refreshToken);
         return ResponseEntity.ok()
                 .header(HttpHeaders.SET_COOKIE, result.refreshTokenCookie().toString())
+                .header(HttpHeaders.SET_COOKIE, result.accessTokenCookie().toString())
                 .header(HttpHeaders.AUTHORIZATION, "Bearer " + result.accessToken())
                 .body(new TokenResponse(result.accessToken()));
     }
@@ -74,6 +76,9 @@ public class AuthController {
             HttpServletRequest request,
             HttpServletResponse response
     ) {
+        response.addHeader(HttpHeaders.SET_COOKIE, authService.expiredRefreshTokenCookie().toString());
+        response.addHeader(HttpHeaders.SET_COOKIE, authService.expiredAccessTokenCookie().toString());
+
         HttpSession session = request.getSession(false);
         if (session != null && session.getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY) != null) {
             session.invalidate();
@@ -83,7 +88,6 @@ public class AuthController {
         if (refreshToken != null && !refreshToken.isBlank()) {
             authService.logoutByRefreshToken(refreshToken);
         }
-        response.addHeader(HttpHeaders.SET_COOKIE, authService.expiredRefreshTokenCookie().toString());
         return ResponseEntity.ok().build();
     }
 

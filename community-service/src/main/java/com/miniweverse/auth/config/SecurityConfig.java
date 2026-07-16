@@ -4,6 +4,8 @@ import com.miniweverse.auth.jwt.JwtAuthenticationEntryPoint;
 import com.miniweverse.auth.jwt.JwtAuthenticationFilter;
 import com.miniweverse.auth.jwt.JwtTokenProvider;
 import com.miniweverse.auth.oauth.KakaoLoginSuccessHandler;
+import com.miniweverse.common.security.InternalServiceAuthFilter;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
@@ -29,15 +31,18 @@ public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
     private final KakaoLoginSuccessHandler kakaoLoginSuccessHandler;
+    private final InternalServiceAuthFilter internalServiceAuthFilter;
 
     public SecurityConfig(
             JwtTokenProvider jwtTokenProvider,
             JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint,
-            KakaoLoginSuccessHandler kakaoLoginSuccessHandler
+            KakaoLoginSuccessHandler kakaoLoginSuccessHandler,
+            @Value("${internal.service-secret}") String internalServiceSecret
     ) {
         this.jwtAuthenticationFilter = new JwtAuthenticationFilter(jwtTokenProvider);
         this.jwtAuthenticationEntryPoint = jwtAuthenticationEntryPoint;
         this.kakaoLoginSuccessHandler = kakaoLoginSuccessHandler;
+        this.internalServiceAuthFilter = new InternalServiceAuthFilter(internalServiceSecret);
     }
 
     @Bean
@@ -64,6 +69,9 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/signup", "/login", "/reissue", "/logout", "/error", "/oauth2/**", "/login/oauth2/**").permitAll()
+                        // 다른 내부 서비스(chat-service 등)가 게이트웨이를 거치지 않고 직접 호출하는
+                        // 서비스 간 전용 API. 유저 JWT가 없는 호출이라 내부망 신뢰를 전제로 permitAll.
+                        .requestMatchers("/internal/**").permitAll()
                         // 커뮤니티 라운지 열람(게시글/댓글 목록 조회)은 로그인 없이 공개한다 — 작성은 permitAll 대상이 아니라 그대로 인증이 필요하다.
                         .requestMatchers(HttpMethod.GET, "/artists", "/artists/*/posts", "/posts/*", "/posts/*/comments").permitAll()
                         .anyRequest().authenticated())
@@ -71,7 +79,8 @@ public class SecurityConfig {
                 .oauth2Login(oauth2 -> oauth2.successHandler(kakaoLoginSuccessHandler))
                 // 기본 LogoutFilter가 POST /logout을 가로채 리다이렉트시키는 걸 막고, AuthController.logout()만 쓴다.
                 .logout(AbstractHttpConfigurer::disable)
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(internalServiceAuthFilter, JwtAuthenticationFilter.class);
         return http.build();
     }
 }

@@ -1,3 +1,6 @@
+server:
+  port: 8081
+
 spring:
   application:
     name: mini-weverse
@@ -31,3 +34,9 @@ jwt:
 
 cookie:
   secure: true
+
+chat-service:
+  base-url: http://localhost:8082
+
+internal:
+  service-secret: ${INTERNAL_SERVICE_SECRET:mini-weverse-internal-secret}

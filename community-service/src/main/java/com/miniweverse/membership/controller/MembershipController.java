@@ -36,6 +36,8 @@ public class MembershipController {
             @AuthenticationPrincipal Long subscriberId,
             @Valid @RequestBody SubscribeRequest request
     ) {
+        // chat-service 알림은 MembershipService.subscribe()가 같은 트랜잭션에서 아웃박스에 적재하고,
+        // MembershipOutboxPublisher가 별도로 전송/재시도한다.
         Membership membership = membershipService.subscribe(subscriberId, request.artistId());
         return ResponseEntity.ok(MembershipResponse.from(membership));
     }

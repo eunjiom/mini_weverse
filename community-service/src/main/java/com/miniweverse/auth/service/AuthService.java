@@ -24,6 +24,10 @@ import org.springframework.stereotype.Service;
 public class AuthService {
 
     private static final String REFRESH_TOKEN_COOKIE_NAME = "refreshToken";
+    private static final String ACCESS_TOKEN_COOKIE_NAME = "accessToken";
+    // accessToken 쿠키는 WebSocket 핸드셰이크(/api/chat/ws-chat)에서만 읽힌다 — 다른 모든 요청은
+    // Authorization 헤더를 쓰므로, 불필요하게 매 요청마다 실려가지 않도록 경로를 좁혀둔다.
+    private static final String ACCESS_TOKEN_COOKIE_PATH = "/api/chat/ws-chat";
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
@@ -128,11 +132,21 @@ public class AuthService {
                 .build();
     }
 
+    public ResponseCookie expiredAccessTokenCookie() {
+        return ResponseCookie.from(ACCESS_TOKEN_COOKIE_NAME, "")
+                .httpOnly(true)
+                .secure(cookieSecure)
+                .path(ACCESS_TOKEN_COOKIE_PATH)
+                .maxAge(0)
+                .sameSite("Lax")
+                .build();
+    }
+
     public LoginResult.UserLoginResult issueUserLogin(User user) {
         String accessToken = jwtTokenProvider.createAccessToken(user.getId(), user.getNickname(), user.getRole());
         String refreshToken = jwtTokenProvider.createRefreshToken(user.getId());
         refreshTokenRepository.save(user.getId(), refreshToken);
-        return new LoginResult.UserLoginResult(accessToken, refreshTokenCookie(refreshToken));
+        return new LoginResult.UserLoginResult(accessToken, accessTokenCookie(accessToken), refreshTokenCookie(refreshToken));
     }
 
     private Long extractUserId(String refreshTokenCookieValue) {
@@ -155,6 +169,20 @@ public class AuthService {
             return email;
         }
         return "kakao_" + providerId + "@miniweverse.local";
+    }
+
+    /**
+     * WebSocket 핸드셰이크 요청은 브라우저가 Authorization 헤더를 커스텀으로 못 붙이므로,
+     * 게이트웨이/chat-service가 쿠키에서 AT를 읽어 인가할 수 있도록 헤더와 별개로 쿠키로도 내려준다.
+     */
+    private ResponseCookie accessTokenCookie(String accessToken) {
+        return ResponseCookie.from(ACCESS_TOKEN_COOKIE_NAME, accessToken)
+                .httpOnly(true)
+                .secure(cookieSecure)
+                .path(ACCESS_TOKEN_COOKIE_PATH)
+                .maxAge(Duration.ofMillis(jwtProperties.accessTokenValidity()))
+                .sameSite("Lax")
+                .build();
     }
 
     private ResponseCookie refreshTokenCookie(String refreshToken) {

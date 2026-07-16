@@ -6,3 +6,5 @@ rootProject.name = 'mini-weverse'
 
 include 'common'
 include 'community-service'
+include 'api-gateway'
+include 'chat-service'

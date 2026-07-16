@@ -5,7 +5,7 @@ import org.springframework.http.ResponseCookie;
 
 public sealed interface LoginResult {
 
-    record UserLoginResult(String accessToken, ResponseCookie refreshTokenCookie) implements LoginResult {
+    record UserLoginResult(String accessToken, ResponseCookie accessTokenCookie, ResponseCookie refreshTokenCookie) implements LoginResult {
     }
 
     record AdminLoginResult(User user) implements LoginResult {

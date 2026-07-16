@@ -6,4 +6,6 @@ dependencies {
     api 'org.springframework.boot:spring-boot-starter-data-jpa'
     api 'org.springframework:spring-web'
     api 'jakarta.validation:jakarta.validation-api'
+    compileOnly 'jakarta.servlet:jakarta.servlet-api'
+    compileOnly 'org.springframework:spring-webmvc'
 }

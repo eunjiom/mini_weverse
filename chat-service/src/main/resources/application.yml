@@ -1,0 +1,27 @@
+server:
+  port: 8082
+
+spring:
+  application:
+    name: mini-weverse-chat
+  datasource:
+    url: jdbc:postgresql://localhost:5432/mini_weverse_chat
+    username: mini_weverse
+    password: mini_weverse
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+
+jwt:
+  public-key-path: keys/public.pem
+
+community-service:
+  base-url: http://localhost:8081
+
+internal:
+  service-secret: ${INTERNAL_SERVICE_SECRET:mini-weverse-internal-secret}
+
+chat:
+  websocket:
+    allowed-origins: http://localhost:*
