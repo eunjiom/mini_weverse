@@ -6,7 +6,7 @@ import com.miniweverse.gateway.authz.AccessType;
 import com.miniweverse.gateway.authz.RouteAccessPolicy;
 import com.miniweverse.gateway.exception.GatewayErrorCode;
 import com.miniweverse.gateway.jwt.GatewayJwtVerifier;
-import com.miniweverse.gateway.jwt.Role;
+import com.miniweverse.common.security.jwt.Role;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;

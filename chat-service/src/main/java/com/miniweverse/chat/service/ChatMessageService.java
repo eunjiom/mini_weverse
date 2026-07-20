@@ -10,7 +10,7 @@ import com.miniweverse.common.response.CursorPageResponse;
 import com.miniweverse.exception.ChatExceptions.InvalidRequestException;
 import com.miniweverse.exception.ChatExceptions.MembershipRequiredException;
 import com.miniweverse.exception.ChatExceptions.RoomNotFoundException;
-import com.miniweverse.user.enums.Role;
+import com.miniweverse.common.security.jwt.Role;
 import java.util.List;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;

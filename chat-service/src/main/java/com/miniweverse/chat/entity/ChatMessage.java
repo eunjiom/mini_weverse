@@ -2,7 +2,7 @@ package com.miniweverse.chat.entity;
 
 import com.miniweverse.common.BaseTimeEntity;
 import com.miniweverse.exception.ChatExceptions.InvalidRequestException;
-import com.miniweverse.user.enums.Role;
+import com.miniweverse.common.security.jwt.Role;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;

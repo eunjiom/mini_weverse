@@ -7,7 +7,7 @@ import com.miniweverse.user.entity.ArtistProfile;
 import com.miniweverse.user.entity.User;
 import java.util.Objects;
 import com.miniweverse.user.enums.MembershipStatus;
-import com.miniweverse.user.enums.Role;
+import com.miniweverse.common.security.jwt.Role;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;

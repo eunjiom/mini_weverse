@@ -9,7 +9,7 @@ import com.miniweverse.exception.AuthUserExceptions.InvalidCredentialsException;
 import com.miniweverse.exception.AuthUserExceptions.InvalidRefreshTokenException;
 import com.miniweverse.user.entity.User;
 import com.miniweverse.user.enums.AuthProvider;
-import com.miniweverse.user.enums.Role;
+import com.miniweverse.common.security.jwt.Role;
 import com.miniweverse.user.repository.UserRepository;
 import io.jsonwebtoken.JwtException;
 import java.time.Duration;

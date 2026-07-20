@@ -6,7 +6,7 @@ import com.miniweverse.support.PostgresTestSupport;
 import com.miniweverse.user.entity.ArtistProfile;
 import com.miniweverse.user.entity.User;
 import com.miniweverse.user.enums.ArtistCategory;
-import com.miniweverse.user.enums.Role;
+import com.miniweverse.common.security.jwt.Role;
 import com.miniweverse.user.repository.ArtistProfileRepository;
 import com.miniweverse.user.repository.UserRepository;
 import javax.sql.DataSource;

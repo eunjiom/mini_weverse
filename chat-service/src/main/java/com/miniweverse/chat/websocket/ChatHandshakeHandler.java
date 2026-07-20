@@ -1,6 +1,6 @@
 package com.miniweverse.chat.websocket;
 
-import com.miniweverse.user.enums.Role;
+import com.miniweverse.common.security.jwt.Role;
 import java.security.Principal;
 import java.util.Map;
 import org.springframework.http.server.ServerHttpRequest;

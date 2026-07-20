@@ -5,7 +5,7 @@ import com.miniweverse.exception.AuthUserExceptions.NotArtistException;
 import com.miniweverse.exception.AuthUserExceptions.SelfFollowNotAllowedException;
 import com.miniweverse.user.entity.ArtistProfile;
 import com.miniweverse.user.entity.User;
-import com.miniweverse.user.enums.Role;
+import com.miniweverse.common.security.jwt.Role;
 import java.util.Objects;
 import lombok.Getter;
 

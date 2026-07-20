@@ -1,7 +1,7 @@
 package com.miniweverse.chat.websocket;
 
 import com.miniweverse.auth.jwt.JwtTokenProvider;
-import com.miniweverse.user.enums.Role;
+import com.miniweverse.common.security.jwt.Role;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import jakarta.servlet.http.Cookie;
