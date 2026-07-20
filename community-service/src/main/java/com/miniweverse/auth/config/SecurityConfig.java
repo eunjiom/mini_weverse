@@ -2,9 +2,9 @@ package com.miniweverse.auth.config;
 
 import com.miniweverse.auth.jwt.JwtAuthenticationEntryPoint;
 import com.miniweverse.auth.jwt.JwtAuthenticationFilter;
-import com.miniweverse.auth.jwt.JwtTokenProvider;
 import com.miniweverse.auth.oauth.KakaoLoginSuccessHandler;
 import com.miniweverse.common.security.InternalServiceAuthFilter;
+import com.miniweverse.common.security.jwt.JwtVerifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -34,12 +34,12 @@ public class SecurityConfig {
     private final InternalServiceAuthFilter internalServiceAuthFilter;
 
     public SecurityConfig(
-            JwtTokenProvider jwtTokenProvider,
+            JwtVerifier jwtVerifier,
             JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint,
             KakaoLoginSuccessHandler kakaoLoginSuccessHandler,
             @Value("${internal.service-secret}") String internalServiceSecret
     ) {
-        this.jwtAuthenticationFilter = new JwtAuthenticationFilter(jwtTokenProvider);
+        this.jwtAuthenticationFilter = new JwtAuthenticationFilter(jwtVerifier);
         this.jwtAuthenticationEntryPoint = jwtAuthenticationEntryPoint;
         this.kakaoLoginSuccessHandler = kakaoLoginSuccessHandler;
         this.internalServiceAuthFilter = new InternalServiceAuthFilter(internalServiceSecret);

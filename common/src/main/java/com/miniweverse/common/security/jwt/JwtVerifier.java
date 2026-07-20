@@ -1,4 +1,4 @@
-package com.miniweverse.gateway.jwt;
+package com.miniweverse.common.security.jwt;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
@@ -12,22 +12,25 @@ import java.security.PublicKey;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.Base64;
-import org.springframework.stereotype.Component;
 
 /**
- * community-service가 발급한 JWT의 서명을 공개키로 검증하고 role 클레임을 읽는다.
- * 게이트웨이는 검증만 하므로 개인키는 필요 없다.
+ * community-service가 개인키로 서명한 JWT를 공개키로 검증한다(발급은 없음).
+ * InternalServiceAuthFilter와 같은 이유로 {@code @Component}로 두지 않고, 각 서비스가 자기 설정값
+ * (공개키 경로)으로 직접 빈을 등록한다 — api-gateway는 컴포넌트 스캔 베이스 패키지가
+ * {@code com.miniweverse.gateway}라 common의 {@code @Component}가 항상 스캔된다고 보장할 수 없다.
  */
-@Component
-public class GatewayJwtVerifier {
+public class JwtVerifier {
+
+    public static final String CLAIM_TOKEN_TYPE = "type";
+    public static final String TOKEN_TYPE_ACCESS = "access";
 
     private final PublicKey publicKey;
 
-    public GatewayJwtVerifier(JwtProperties properties) {
-        this.publicKey = readPublicKey(properties.publicKeyPath());
+    public JwtVerifier(String publicKeyPath) {
+        this.publicKey = readPublicKey(publicKeyPath);
     }
 
-    public Claims verify(String token) {
+    public Claims parseClaims(String token) {
         return Jwts.parser()
                 .verifyWith(publicKey)
                 .build()

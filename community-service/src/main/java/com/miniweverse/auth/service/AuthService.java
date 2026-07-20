@@ -4,12 +4,13 @@ import com.miniweverse.auth.dto.SignupRequest;
 import com.miniweverse.auth.jwt.JwtProperties;
 import com.miniweverse.auth.jwt.JwtTokenProvider;
 import com.miniweverse.auth.repository.RefreshTokenRepository;
+import com.miniweverse.common.security.jwt.JwtVerifier;
+import com.miniweverse.common.security.jwt.Role;
 import com.miniweverse.exception.AuthUserExceptions.DuplicateEmailException;
 import com.miniweverse.exception.AuthUserExceptions.InvalidCredentialsException;
 import com.miniweverse.exception.AuthUserExceptions.InvalidRefreshTokenException;
 import com.miniweverse.user.entity.User;
 import com.miniweverse.user.enums.AuthProvider;
-import com.miniweverse.common.security.jwt.Role;
 import com.miniweverse.user.repository.UserRepository;
 import io.jsonwebtoken.JwtException;
 import java.time.Duration;
@@ -32,6 +33,7 @@ public class AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
+    private final JwtVerifier jwtVerifier;
     private final RefreshTokenRepository refreshTokenRepository;
     private final JwtProperties jwtProperties;
     private final boolean cookieSecure;
@@ -40,6 +42,7 @@ public class AuthService {
             UserRepository userRepository,
             PasswordEncoder passwordEncoder,
             JwtTokenProvider jwtTokenProvider,
+            JwtVerifier jwtVerifier,
             RefreshTokenRepository refreshTokenRepository,
             JwtProperties jwtProperties,
             @Value("${cookie.secure:true}") boolean cookieSecure
@@ -47,6 +50,7 @@ public class AuthService {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtTokenProvider = jwtTokenProvider;
+        this.jwtVerifier = jwtVerifier;
         this.refreshTokenRepository = refreshTokenRepository;
         this.jwtProperties = jwtProperties;
         this.cookieSecure = cookieSecure;
@@ -154,8 +158,8 @@ public class AuthService {
             throw new InvalidRefreshTokenException();
         }
         try {
-            var claims = jwtTokenProvider.parseClaims(refreshTokenCookieValue);
-            if (!JwtTokenProvider.TOKEN_TYPE_REFRESH.equals(claims.get(JwtTokenProvider.CLAIM_TOKEN_TYPE, String.class))) {
+            var claims = jwtVerifier.parseClaims(refreshTokenCookieValue);
+            if (!JwtTokenProvider.TOKEN_TYPE_REFRESH.equals(claims.get(JwtVerifier.CLAIM_TOKEN_TYPE, String.class))) {
                 throw new InvalidRefreshTokenException();
             }
             return Long.valueOf(claims.getSubject());

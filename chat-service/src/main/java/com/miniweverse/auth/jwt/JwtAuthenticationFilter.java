@@ -1,5 +1,6 @@
 package com.miniweverse.auth.jwt;
 
+import com.miniweverse.common.security.jwt.JwtVerifier;
 import com.miniweverse.exception.code.ChatErrorCode;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
@@ -27,10 +28,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private static final String BEARER_PREFIX = "Bearer ";
 
-    private final JwtTokenProvider jwtTokenProvider;
+    private final JwtVerifier jwtVerifier;
 
-    public JwtAuthenticationFilter(JwtTokenProvider jwtTokenProvider) {
-        this.jwtTokenProvider = jwtTokenProvider;
+    public JwtAuthenticationFilter(JwtVerifier jwtVerifier) {
+        this.jwtVerifier = jwtVerifier;
     }
 
     @Override
@@ -43,8 +44,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         if (header != null && header.startsWith(BEARER_PREFIX)) {
             String token = header.substring(BEARER_PREFIX.length());
             try {
-                Claims claims = jwtTokenProvider.parseClaims(token);
-                if (!JwtTokenProvider.TOKEN_TYPE_ACCESS.equals(claims.get(JwtTokenProvider.CLAIM_TOKEN_TYPE, String.class))) {
+                Claims claims = jwtVerifier.parseClaims(token);
+                if (!JwtVerifier.TOKEN_TYPE_ACCESS.equals(claims.get(JwtVerifier.CLAIM_TOKEN_TYPE, String.class))) {
                     request.setAttribute(TOKEN_ERROR_ATTRIBUTE, ChatErrorCode.INVALID_TOKEN);
                     SecurityContextHolder.clearContext();
                 } else {
