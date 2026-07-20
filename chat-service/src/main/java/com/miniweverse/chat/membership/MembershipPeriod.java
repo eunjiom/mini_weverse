@@ -6,6 +6,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
 import jakarta.persistence.Table;
 import java.time.LocalDateTime;
 import lombok.AccessLevel;
@@ -18,7 +19,10 @@ import lombok.NoArgsConstructor;
  * (ChatMessageRepository.findVisibleMessages가 이 이력으로 "그 시점에 구독 중이었는지" 판단).
  */
 @Entity
-@Table(name = "membership_periods")
+@Table(
+        name = "membership_periods",
+        indexes = @Index(name = "idx_membership_periods_fan_artist", columnList = "fan_user_id, artist_id")
+)
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class MembershipPeriod extends BaseTimeEntity {

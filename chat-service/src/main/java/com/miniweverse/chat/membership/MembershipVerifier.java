@@ -43,10 +43,13 @@ public class MembershipVerifier {
     /**
      * community-service가 구독 성공 직후 호출 — 캐시된 false를 자정까지 기다리지 않고 즉시 정정한다.
      * newPeriodStartedAt이 있으면(그냥 연장이 아니라 새 구독 기간이 열린 경우) 기간 이력도 새로 연다.
+     * 이미 열린 기간이 있으면 새로 열지 않는다 — 아웃박스가 재시도해서 같은 활성화 이벤트가 두 번
+     * 도착해도(응답 유실 후 재전송 등) 기간이 중복으로 열리지 않게 한다(중복되면 markExpired의
+     * findOpenPeriod가 단건을 기대하는 쿼리라 나중에 터진다).
      */
     public void markActive(Long fanUserId, Long artistId, LocalDateTime newPeriodStartedAt) {
         membershipCache.put(fanUserId, artistId, true);
-        if (newPeriodStartedAt != null) {
+        if (newPeriodStartedAt != null && membershipPeriodRepository.findOpenPeriod(fanUserId, artistId).isEmpty()) {
             membershipPeriodRepository.save(MembershipPeriod.start(fanUserId, artistId, newPeriodStartedAt));
         }
     }
