@@ -17,6 +17,7 @@ public interface ChatMessageRepository extends JpaRepository<ChatMessage, Long> 
      */
     @Query("""
             SELECT m FROM ChatMessage m
+            JOIN FETCH m.room
             WHERE m.room.id = :roomId
               AND (m.senderRole = com.miniweverse.common.security.jwt.Role.ARTIST OR m.senderId = :fanUserId)
               AND (:cursor IS NULL OR m.id < :cursor)
