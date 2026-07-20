@@ -67,7 +67,7 @@ public class ChatMessageService {
         }
         ChatRoom room = getRoom(artistId);
         List<ChatMessageResponse> fetched = chatMessageRepository
-                .findVisibleMessages(room.getId(), fanUserId, cursor, PageRequest.of(0, size + 1))
+                .findVisibleMessages(room.getId(), artistId, fanUserId, cursor, PageRequest.of(0, size + 1))
                 .stream()
                 .map(ChatMessageResponse::from)
                 .toList();

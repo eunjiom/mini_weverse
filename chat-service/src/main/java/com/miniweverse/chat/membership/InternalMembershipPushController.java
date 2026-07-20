@@ -21,13 +21,13 @@ public class InternalMembershipPushController {
 
     @PostMapping("/internal/memberships/active")
     public ResponseEntity<Void> markActive(@RequestBody MembershipEventRequest request) {
-        membershipVerifier.markActive(request.fanUserId(), request.artistId());
+        membershipVerifier.markActive(request.fanUserId(), request.artistId(), request.periodBoundaryAt());
         return ResponseEntity.ok().build();
     }
 
     @PostMapping("/internal/memberships/expired")
     public ResponseEntity<Void> markExpired(@RequestBody MembershipEventRequest request) {
-        membershipVerifier.markExpired(request.fanUserId(), request.artistId());
+        membershipVerifier.markExpired(request.fanUserId(), request.artistId(), request.periodBoundaryAt());
         return ResponseEntity.ok().build();
     }
 }

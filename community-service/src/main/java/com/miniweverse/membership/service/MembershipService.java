@@ -17,6 +17,7 @@ import com.miniweverse.user.repository.UserRepository;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -57,18 +58,23 @@ public class MembershipService {
         // findBySubscriberAndArtist는 PESSIMISTIC_WRITE 락을 걸기 때문에, 동시에 들어온
         // 같은 (subscriber, artist) 요청은 여기서 순서대로 직렬화된다.
         LocalDateTime now = LocalDateTime.now();
-        Membership membership = membershipRepository.findBySubscriberAndArtist(subscriber, artistProfile)
-                .map(existing -> {
-                    boolean startedNewPeriod = existing.renew(now);
-                    if (startedNewPeriod) {
-                        membershipPeriodRepository.save(MembershipPeriod.start(existing, now));
-                    }
-                    return existing;
-                })
-                .orElseGet(() -> createOrRenew(subscriber, artistProfile, now));
+        Optional<Membership> existing = membershipRepository.findBySubscriberAndArtist(subscriber, artistProfile);
+        Membership membership;
+        LocalDateTime newPeriodStartedAt = null;
+        if (existing.isPresent()) {
+            membership = existing.get();
+            boolean startedNewPeriod = membership.renew(now);
+            if (startedNewPeriod) {
+                membershipPeriodRepository.save(MembershipPeriod.start(membership, now));
+                newPeriodStartedAt = now;
+            }
+        } else {
+            membership = createOrRenew(subscriber, artistProfile, now);
+            newPeriodStartedAt = now;
+        }
         // chat-service 알림을 이 트랜잭션과 같이 커밋되는 아웃박스에 적재한다 — 알림 전송 자체가
         // 실패해도 구독 상태 변경과 분리되어 유실되지 않고, MembershipOutboxPublisher가 재시도한다.
-        outboxEventRepository.save(MembershipOutboxEvent.activated(subscriber.getId(), artistProfile.getId()));
+        outboxEventRepository.save(MembershipOutboxEvent.activated(subscriber.getId(), artistProfile.getId(), newPeriodStartedAt));
         return membership;
     }
 
@@ -143,7 +149,7 @@ public class MembershipService {
                 .ifPresent(period -> period.close(now));
         ArtistProfile artist = membership.getArtist();
         if (artist != null) {
-            outboxEventRepository.save(MembershipOutboxEvent.expired(membership.getSubscriber().getId(), artist.getId()));
+            outboxEventRepository.save(MembershipOutboxEvent.expired(membership.getSubscriber().getId(), artist.getId(), now));
         }
     }
 }

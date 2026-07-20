@@ -1,6 +1,7 @@
 package com.miniweverse.membership.client;
 
 import com.miniweverse.common.security.InternalServiceRestClientFactory;
+import java.time.LocalDateTime;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
@@ -26,24 +27,25 @@ public class ChatServiceMembershipNotifier {
         this.restClient = InternalServiceRestClientFactory.create(baseUrl, internalServiceSecret);
     }
 
-    public void notifyActivated(Long fanUserId, Long artistId) {
+    /** @param newPeriodStartedAt 이번 활성화로 새 구독 기간이 열렸으면 그 시작 시각, 그냥 연장이면 null */
+    public void notifyActivated(Long fanUserId, Long artistId, LocalDateTime newPeriodStartedAt) {
         restClient.post()
                 .uri("/internal/memberships/active")
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(new MembershipEventPayload(fanUserId, artistId))
+                .body(new MembershipEventPayload(fanUserId, artistId, newPeriodStartedAt))
                 .retrieve()
                 .toBodilessEntity();
     }
 
-    public void notifyExpired(Long fanUserId, Long artistId) {
+    public void notifyExpired(Long fanUserId, Long artistId, LocalDateTime periodEndedAt) {
         restClient.post()
                 .uri("/internal/memberships/expired")
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(new MembershipEventPayload(fanUserId, artistId))
+                .body(new MembershipEventPayload(fanUserId, artistId, periodEndedAt))
                 .retrieve()
                 .toBodilessEntity();
     }
 
-    private record MembershipEventPayload(Long fanUserId, Long artistId) {
+    private record MembershipEventPayload(Long fanUserId, Long artistId, LocalDateTime periodBoundaryAt) {
     }
 }
