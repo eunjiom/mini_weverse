@@ -1,12 +1,9 @@
 package com.miniweverse.membership.client;
 
-import com.miniweverse.common.security.InternalServiceAuthFilter;
-import java.time.Duration;
+import com.miniweverse.common.security.InternalServiceRestClientFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
-import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
-import org.springframework.util.Assert;
 import org.springframework.web.client.RestClient;
 
 /**
@@ -20,32 +17,19 @@ import org.springframework.web.client.RestClient;
 @Component
 public class ChatServiceMembershipNotifier {
 
-    private static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(2);
-    private static final Duration READ_TIMEOUT = Duration.ofSeconds(3);
-
     private final RestClient restClient;
-    private final String internalServiceSecret;
 
     public ChatServiceMembershipNotifier(
             @Value("${chat-service.base-url}") String baseUrl,
             @Value("${internal.service-secret}") String internalServiceSecret
     ) {
-        Assert.hasText(internalServiceSecret, "internal.service-secret must not be blank");
-        SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
-        requestFactory.setConnectTimeout(CONNECT_TIMEOUT);
-        requestFactory.setReadTimeout(READ_TIMEOUT);
-        this.restClient = RestClient.builder()
-                .baseUrl(baseUrl)
-                .requestFactory(requestFactory)
-                .build();
-        this.internalServiceSecret = internalServiceSecret;
+        this.restClient = InternalServiceRestClientFactory.create(baseUrl, internalServiceSecret);
     }
 
     public void notifyActivated(Long fanUserId, Long artistId) {
         restClient.post()
                 .uri("/internal/memberships/active")
                 .contentType(MediaType.APPLICATION_JSON)
-                .header(InternalServiceAuthFilter.SECRET_HEADER_NAME, internalServiceSecret)
                 .body(new MembershipEventPayload(fanUserId, artistId))
                 .retrieve()
                 .toBodilessEntity();
@@ -55,7 +39,6 @@ public class ChatServiceMembershipNotifier {
         restClient.post()
                 .uri("/internal/memberships/expired")
                 .contentType(MediaType.APPLICATION_JSON)
-                .header(InternalServiceAuthFilter.SECRET_HEADER_NAME, internalServiceSecret)
                 .body(new MembershipEventPayload(fanUserId, artistId))
                 .retrieve()
                 .toBodilessEntity();
