@@ -1,6 +1,6 @@
 package com.miniweverse.membership.outbox;
 
-import com.miniweverse.common.BaseTimeEntity;
+import com.miniweverse.common.entity.BaseTimeEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;

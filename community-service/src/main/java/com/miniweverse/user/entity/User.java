@@ -1,6 +1,6 @@
 package com.miniweverse.user.entity;
 
-import com.miniweverse.common.BaseTimeEntity;
+import com.miniweverse.common.entity.BaseTimeEntity;
 import com.miniweverse.exception.AuthUserExceptions.InvalidRequestException;
 import com.miniweverse.user.enums.AuthProvider;
 import com.miniweverse.common.security.jwt.Role;

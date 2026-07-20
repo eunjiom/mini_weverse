@@ -1,6 +1,6 @@
 package com.miniweverse.user.entity;
 
-import com.miniweverse.common.BaseTimeEntity;
+import com.miniweverse.common.entity.BaseTimeEntity;
 import com.miniweverse.exception.AuthUserExceptions.InvalidArtistProfileException;
 import com.miniweverse.exception.AuthUserExceptions.InvalidRequestException;
 import com.miniweverse.user.enums.ArtistCategory;
