@@ -11,7 +11,11 @@ spring:
   jpa:
     hibernate:
       ddl-auto: update
+    defer-datasource-initialization: true
     open-in-view: false
+  sql:
+    init:
+      mode: always
 
 jwt:
   public-key-path: keys/public.pem
