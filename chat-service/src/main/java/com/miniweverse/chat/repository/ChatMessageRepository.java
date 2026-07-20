@@ -39,4 +39,21 @@ public interface ChatMessageRepository extends JpaRepository<ChatMessage, Long> 
             @Param("cursor") Long cursor,
             Pageable pageable
     );
+
+    /**
+     * 아티스트 인박스 전용 — 방 주인은 팬 필터 없이 방에 오간 메시지 전부를 볼 자격이 있으므로
+     * findVisibleMessages와 달리 가시성 조건이 없다.
+     */
+    @Query("""
+            SELECT m FROM ChatMessage m
+            JOIN FETCH m.room
+            WHERE m.room.id = :roomId
+              AND (:cursor IS NULL OR m.id < :cursor)
+            ORDER BY m.id DESC
+            """)
+    List<ChatMessage> findAllByRoomId(
+            @Param("roomId") Long roomId,
+            @Param("cursor") Long cursor,
+            Pageable pageable
+    );
 }
