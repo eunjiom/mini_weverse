@@ -40,4 +40,19 @@ public class ChatRoomController {
     ) {
         return ResponseEntity.ok(chatMessageService.getMyMessages(artistId, viewerId, cursor, size));
     }
+
+    @Operation(
+            summary = "아티스트 인박스 전체 메시지 조회",
+            description = "이 방을 소유한 아티스트가 팬 구분 없이 방에 오간 메시지 전체를 커서 기반으로 조회한다. "
+                    + "cursor 미지정 시 최신 메시지부터, 이후엔 그 id보다 작은(더 오래된) 메시지를 가져온다."
+    )
+    @GetMapping("/api/chat/rooms/{artistId}/inbox")
+    public ResponseEntity<CursorPageResponse<ChatMessageResponse>> getInboxMessages(
+            @AuthenticationPrincipal Long viewerId,
+            @PathVariable Long artistId,
+            @RequestParam(required = false) Long cursor,
+            @RequestParam(defaultValue = "20") @Min(1) @Max(50) int size
+    ) {
+        return ResponseEntity.ok(chatMessageService.getInboxMessages(artistId, viewerId, cursor, size));
+    }
 }

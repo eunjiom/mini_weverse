@@ -1,7 +1,7 @@
 package com.miniweverse.chat.websocket;
 
-import com.miniweverse.auth.jwt.JwtTokenProvider;
-import com.miniweverse.user.enums.Role;
+import com.miniweverse.common.security.jwt.JwtVerifier;
+import com.miniweverse.common.security.jwt.Role;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import jakarta.servlet.http.Cookie;
@@ -28,10 +28,10 @@ public class JwtHandshakeInterceptor implements HandshakeInterceptor {
     private static final String ACCESS_TOKEN_COOKIE_NAME = "accessToken";
     private static final Set<Role> ALLOWED_ROLES = EnumSet.of(Role.FAN, Role.ARTIST);
 
-    private final JwtTokenProvider jwtTokenProvider;
+    private final JwtVerifier jwtVerifier;
 
-    public JwtHandshakeInterceptor(JwtTokenProvider jwtTokenProvider) {
-        this.jwtTokenProvider = jwtTokenProvider;
+    public JwtHandshakeInterceptor(JwtVerifier jwtVerifier) {
+        this.jwtVerifier = jwtVerifier;
     }
 
     @Override
@@ -48,8 +48,8 @@ public class JwtHandshakeInterceptor implements HandshakeInterceptor {
         }
 
         try {
-            Claims claims = jwtTokenProvider.parseClaims(token);
-            if (!JwtTokenProvider.TOKEN_TYPE_ACCESS.equals(claims.get(JwtTokenProvider.CLAIM_TOKEN_TYPE, String.class))) {
+            Claims claims = jwtVerifier.parseClaims(token);
+            if (!JwtVerifier.TOKEN_TYPE_ACCESS.equals(claims.get(JwtVerifier.CLAIM_TOKEN_TYPE, String.class))) {
                 response.setStatusCode(HttpStatus.UNAUTHORIZED);
                 return false;
             }

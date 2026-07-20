@@ -1,9 +1,9 @@
 package com.miniweverse.user.entity;
 
-import com.miniweverse.common.BaseTimeEntity;
+import com.miniweverse.common.entity.BaseTimeEntity;
 import com.miniweverse.exception.AuthUserExceptions.InvalidRequestException;
 import com.miniweverse.user.enums.AuthProvider;
-import com.miniweverse.user.enums.Role;
+import com.miniweverse.common.security.jwt.Role;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;

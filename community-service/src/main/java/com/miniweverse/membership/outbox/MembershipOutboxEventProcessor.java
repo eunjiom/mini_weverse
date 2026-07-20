@@ -31,10 +31,10 @@ public class MembershipOutboxEventProcessor {
     public void process(MembershipOutboxEvent event) {
         try {
             switch (event.getEventType()) {
-                case MEMBERSHIP_ACTIVATED ->
-                        chatServiceMembershipNotifier.notifyActivated(event.getFanUserId(), event.getArtistId());
-                case MEMBERSHIP_EXPIRED ->
-                        chatServiceMembershipNotifier.notifyExpired(event.getFanUserId(), event.getArtistId());
+                case MEMBERSHIP_ACTIVATED -> chatServiceMembershipNotifier.notifyActivated(
+                        event.getFanUserId(), event.getArtistId(), event.getPeriodBoundaryAt());
+                case MEMBERSHIP_EXPIRED -> chatServiceMembershipNotifier.notifyExpired(
+                        event.getFanUserId(), event.getArtistId(), event.getPeriodBoundaryAt());
             }
             event.markSent();
         } catch (RestClientException e) {

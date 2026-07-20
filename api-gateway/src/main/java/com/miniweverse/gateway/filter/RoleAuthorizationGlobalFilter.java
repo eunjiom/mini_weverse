@@ -4,9 +4,9 @@ import com.miniweverse.common.response.ApiResponse;
 import com.miniweverse.gateway.authz.AccessRule;
 import com.miniweverse.gateway.authz.AccessType;
 import com.miniweverse.gateway.authz.RouteAccessPolicy;
+import com.miniweverse.common.security.jwt.JwtVerifier;
+import com.miniweverse.common.security.jwt.Role;
 import com.miniweverse.gateway.exception.GatewayErrorCode;
-import com.miniweverse.gateway.jwt.GatewayJwtVerifier;
-import com.miniweverse.gateway.jwt.Role;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
@@ -42,12 +42,12 @@ public class RoleAuthorizationGlobalFilter implements GlobalFilter, Ordered {
     private static final String ACCESS_TOKEN_COOKIE_NAME = "accessToken";
 
     private final RouteAccessPolicy routeAccessPolicy;
-    private final GatewayJwtVerifier jwtVerifier;
+    private final JwtVerifier jwtVerifier;
     private final ObjectMapper objectMapper;
 
     public RoleAuthorizationGlobalFilter(
             RouteAccessPolicy routeAccessPolicy,
-            GatewayJwtVerifier jwtVerifier,
+            JwtVerifier jwtVerifier,
             ObjectMapper objectMapper
     ) {
         this.routeAccessPolicy = routeAccessPolicy;
@@ -71,7 +71,7 @@ public class RoleAuthorizationGlobalFilter implements GlobalFilter, Ordered {
 
         Claims claims;
         try {
-            claims = jwtVerifier.verify(token);
+            claims = jwtVerifier.parseClaims(token);
         } catch (JwtException | IllegalArgumentException e) {
             return reject(exchange, GatewayErrorCode.AUTHENTICATION_REQUIRED);
         }

@@ -1,4 +1,4 @@
-package com.miniweverse.common;
+package com.miniweverse.common.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.EntityListeners;

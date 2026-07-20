@@ -6,7 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.miniweverse.support.PostgresTestSupport;
 import com.miniweverse.user.entity.User;
-import com.miniweverse.user.enums.Role;
+import com.miniweverse.common.security.jwt.Role;
 import java.util.Optional;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;

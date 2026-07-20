@@ -1,12 +1,10 @@
 package com.miniweverse.membership.client;
 
-import com.miniweverse.common.security.InternalServiceAuthFilter;
-import java.time.Duration;
+import com.miniweverse.common.security.InternalServiceRestClientFactory;
+import java.time.LocalDateTime;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
-import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
-import org.springframework.util.Assert;
 import org.springframework.web.client.RestClient;
 
 /**
@@ -20,47 +18,34 @@ import org.springframework.web.client.RestClient;
 @Component
 public class ChatServiceMembershipNotifier {
 
-    private static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(2);
-    private static final Duration READ_TIMEOUT = Duration.ofSeconds(3);
-
     private final RestClient restClient;
-    private final String internalServiceSecret;
 
     public ChatServiceMembershipNotifier(
             @Value("${chat-service.base-url}") String baseUrl,
             @Value("${internal.service-secret}") String internalServiceSecret
     ) {
-        Assert.hasText(internalServiceSecret, "internal.service-secret must not be blank");
-        SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
-        requestFactory.setConnectTimeout(CONNECT_TIMEOUT);
-        requestFactory.setReadTimeout(READ_TIMEOUT);
-        this.restClient = RestClient.builder()
-                .baseUrl(baseUrl)
-                .requestFactory(requestFactory)
-                .build();
-        this.internalServiceSecret = internalServiceSecret;
+        this.restClient = InternalServiceRestClientFactory.create(baseUrl, internalServiceSecret);
     }
 
-    public void notifyActivated(Long fanUserId, Long artistId) {
+    /** @param newPeriodStartedAt 이번 활성화로 새 구독 기간이 열렸으면 그 시작 시각, 그냥 연장이면 null */
+    public void notifyActivated(Long fanUserId, Long artistId, LocalDateTime newPeriodStartedAt) {
         restClient.post()
                 .uri("/internal/memberships/active")
                 .contentType(MediaType.APPLICATION_JSON)
-                .header(InternalServiceAuthFilter.SECRET_HEADER_NAME, internalServiceSecret)
-                .body(new MembershipEventPayload(fanUserId, artistId))
+                .body(new MembershipEventPayload(fanUserId, artistId, newPeriodStartedAt))
                 .retrieve()
                 .toBodilessEntity();
     }
 
-    public void notifyExpired(Long fanUserId, Long artistId) {
+    public void notifyExpired(Long fanUserId, Long artistId, LocalDateTime periodEndedAt) {
         restClient.post()
                 .uri("/internal/memberships/expired")
                 .contentType(MediaType.APPLICATION_JSON)
-                .header(InternalServiceAuthFilter.SECRET_HEADER_NAME, internalServiceSecret)
-                .body(new MembershipEventPayload(fanUserId, artistId))
+                .body(new MembershipEventPayload(fanUserId, artistId, periodEndedAt))
                 .retrieve()
                 .toBodilessEntity();
     }
 
-    private record MembershipEventPayload(Long fanUserId, Long artistId) {
+    private record MembershipEventPayload(Long fanUserId, Long artistId, LocalDateTime periodBoundaryAt) {
     }
 }

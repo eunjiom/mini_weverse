@@ -1,6 +1,6 @@
 package com.miniweverse.post.entity;
 
-import com.miniweverse.common.BaseTimeEntity;
+import com.miniweverse.common.entity.BaseTimeEntity;
 import com.miniweverse.exception.AuthUserExceptions.InvalidRequestException;
 import com.miniweverse.post.enums.BoardType;
 import com.miniweverse.user.entity.ArtistProfile;

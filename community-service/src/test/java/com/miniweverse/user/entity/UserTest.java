@@ -5,7 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.miniweverse.exception.AuthUserExceptions.InvalidRequestException;
 import com.miniweverse.user.enums.AuthProvider;
-import com.miniweverse.user.enums.Role;
+import com.miniweverse.common.security.jwt.Role;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 

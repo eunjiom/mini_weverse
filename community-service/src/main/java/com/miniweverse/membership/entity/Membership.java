@@ -1,13 +1,13 @@
 package com.miniweverse.membership.entity;
 
-import com.miniweverse.common.BaseTimeEntity;
+import com.miniweverse.common.entity.BaseTimeEntity;
 import com.miniweverse.exception.AuthUserExceptions.InvalidRequestException;
 import com.miniweverse.exception.AuthUserExceptions.NotArtistException;
 import com.miniweverse.user.entity.ArtistProfile;
 import com.miniweverse.user.entity.User;
 import java.util.Objects;
 import com.miniweverse.user.enums.MembershipStatus;
-import com.miniweverse.user.enums.Role;
+import com.miniweverse.common.security.jwt.Role;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -20,6 +20,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
+import jakarta.persistence.Version;
 import java.time.LocalDateTime;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -68,6 +69,15 @@ public class Membership extends BaseTimeEntity {
 
     private LocalDateTime cancelledAt;
 
+    /**
+     * 자정 배치의 만료 처리와 유저의 갱신 요청이 같은 row를 거의 동시에 건드리는 극히 드문 경우를
+     * 대비한 낙관적 락. 배치가 만료 처리하려는 순간 그 사이 갱신이 먼저 커밋되면, 배치 쪽 저장이
+     * 버전 충돌로 실패하고 그 건은 조용히 건너뛴다(MembershipService.expireOne 참고).
+     */
+    @Version
+    @Column(nullable = false, columnDefinition = "bigint default 0")
+    private Long version;
+
     private Membership(User subscriber, ArtistProfile artist, MembershipStatus status, LocalDateTime expiresAt) {
         this.subscriber = subscriber;
         this.artist = artist;
@@ -94,12 +104,16 @@ public class Membership extends BaseTimeEntity {
     /**
      * 구독 갱신. 이미 만료됐으면 갱신 시점부터 1개월, 아직 유효(ACTIVE)하면 기존 만료일에 1개월을 이어붙인다.
      * 재구독하면 취소 여부는 무효화된다.
+     *
+     * @return 공백(만료) 뒤에 다시 구독해서 새 {@link MembershipPeriod}를 열어야 하면 true,
+     *         만료 전에 그냥 연장한 거면(기존 기간이 계속 이어짐) false
      */
-    public void renew(LocalDateTime now) {
+    public boolean renew(LocalDateTime now) {
         boolean alreadyExpired = status == MembershipStatus.EXPIRED || expiresAt == null || expiresAt.isBefore(now);
         this.expiresAt = alreadyExpired ? now.plusMonths(1) : expiresAt.plusMonths(1);
         this.status = MembershipStatus.ACTIVE;
         this.cancelledAt = null;
+        return alreadyExpired;
     }
 
     public void expire() {

@@ -7,7 +7,7 @@ import com.miniweverse.exception.AuthUserExceptions.SelfFollowNotAllowedExceptio
 import com.miniweverse.user.entity.ArtistProfile;
 import com.miniweverse.user.entity.User;
 import com.miniweverse.user.enums.ArtistCategory;
-import com.miniweverse.user.enums.Role;
+import com.miniweverse.common.security.jwt.Role;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 

@@ -1,6 +1,6 @@
 package com.miniweverse.gateway.authz;
 
-import com.miniweverse.gateway.jwt.Role;
+import com.miniweverse.common.security.jwt.Role;
 import java.util.List;
 import org.springframework.http.HttpMethod;
 import org.springframework.stereotype.Component;

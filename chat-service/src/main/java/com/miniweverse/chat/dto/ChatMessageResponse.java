@@ -1,7 +1,7 @@
 package com.miniweverse.chat.dto;
 
 import com.miniweverse.chat.entity.ChatMessage;
-import com.miniweverse.user.enums.Role;
+import com.miniweverse.common.security.jwt.Role;
 import java.time.LocalDateTime;
 
 public record ChatMessageResponse(

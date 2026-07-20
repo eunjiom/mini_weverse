@@ -10,7 +10,7 @@ import com.miniweverse.common.response.CursorPageResponse;
 import com.miniweverse.exception.ChatExceptions.InvalidRequestException;
 import com.miniweverse.exception.ChatExceptions.MembershipRequiredException;
 import com.miniweverse.exception.ChatExceptions.RoomNotFoundException;
-import com.miniweverse.user.enums.Role;
+import com.miniweverse.common.security.jwt.Role;
 import java.util.List;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -58,8 +58,9 @@ public class ChatMessageService {
     }
 
     /**
-     * 팬 본인의 스레드 조회 전용 — 아티스트가 특정 팬의 대화를 조회/검색하는 기능은 요청받은 적
-     * 없어서 만들지 않는다(팬 입장에서 "내 채팅 화면 열기"만 지원).
+     * 팬 본인의 스레드 조회 전용 — 특정 팬 하나를 콕 집어 아티스트가 그 대화만 따로 조회하는 기능은
+     * 요청받은 적 없어서 만들지 않는다(팬 입장에서 "내 채팅 화면 열기"만 지원). 아티스트가 방 전체를
+     * 보는 건 {@link #getInboxMessages}가 별도로 담당한다.
      */
     public CursorPageResponse<ChatMessageResponse> getMyMessages(Long artistId, Long fanUserId, Long cursor, int size) {
         if (!membershipVerifier.isActiveMember(fanUserId, artistId)) {
@@ -67,7 +68,25 @@ public class ChatMessageService {
         }
         ChatRoom room = getRoom(artistId);
         List<ChatMessageResponse> fetched = chatMessageRepository
-                .findVisibleMessages(room.getId(), fanUserId, cursor, PageRequest.of(0, size + 1))
+                .findVisibleMessages(room.getId(), artistId, fanUserId, cursor, PageRequest.of(0, size + 1))
+                .stream()
+                .map(ChatMessageResponse::from)
+                .toList();
+        return CursorPageResponse.of(fetched, size, ChatMessageResponse::id);
+    }
+
+    /**
+     * 아티스트 본인의 방 전체 조회 — 팬별 필터 없이 방에 오간 메시지 전부를 본다. 아티스트는 자기
+     * 방 주인이라 팬처럼 "구독 기간 안이었는지" 따질 필요가 없다(자기가 보낸 방송이든, 어느 팬이
+     * 보낸 답장이든 전부 자기 방 소유 권한만으로 볼 자격이 있음).
+     */
+    public CursorPageResponse<ChatMessageResponse> getInboxMessages(Long artistId, Long artistUserId, Long cursor, int size) {
+        ChatRoom room = getRoom(artistId);
+        if (!room.getOwnerUserId().equals(artistUserId)) {
+            throw new InvalidRequestException("본인 소유의 채팅방이 아닙니다.");
+        }
+        List<ChatMessageResponse> fetched = chatMessageRepository
+                .findAllByRoomId(room.getId(), cursor, PageRequest.of(0, size + 1))
                 .stream()
                 .map(ChatMessageResponse::from)
                 .toList();
