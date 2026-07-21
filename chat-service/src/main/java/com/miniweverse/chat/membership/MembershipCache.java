@@ -1,7 +1,8 @@
 package com.miniweverse.chat.membership;
 
-import java.time.Instant;
+import java.time.Duration;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.ZoneId;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
@@ -22,6 +23,7 @@ import org.springframework.stereotype.Component;
 public class MembershipCache {
 
     private static final String KEY_PREFIX = "chat:membership:";
+    private static final ZoneId ZONE = ZoneId.of("Asia/Seoul");
 
     private final StringRedisTemplate redisTemplate;
 
@@ -34,14 +36,15 @@ public class MembershipCache {
         return value == null ? null : Boolean.valueOf(value);
     }
 
+    /** set과 만료 설정을 한 번의 원자적 명령으로 묶어서, 둘 사이에 죽어도 TTL 없는 키가 남지 않게 한다. */
     public void put(Long fanUserId, Long artistId, boolean active) {
-        String key = key(fanUserId, artistId);
-        redisTemplate.opsForValue().set(key, String.valueOf(active));
-        redisTemplate.expireAt(key, nextMidnight());
+        redisTemplate.opsForValue().set(key(fanUserId, artistId), String.valueOf(active), untilNextMidnight());
     }
 
-    private Instant nextMidnight() {
-        return LocalDate.now().plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant();
+    private Duration untilNextMidnight() {
+        LocalDateTime now = LocalDateTime.now(ZONE);
+        LocalDateTime nextMidnight = LocalDate.now(ZONE).plusDays(1).atStartOfDay();
+        return Duration.between(now, nextMidnight);
     }
 
     private String key(Long fanUserId, Long artistId) {

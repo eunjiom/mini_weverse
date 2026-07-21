@@ -20,6 +20,7 @@ public class FanMessageDailyQuota {
 
     private static final String KEY_PREFIX = "chat:quota:";
     private static final int MAX_MESSAGES_PER_DAY = 5;
+    private static final ZoneId ZONE = ZoneId.of("Asia/Seoul");
 
     private final StringRedisTemplate redisTemplate;
 
@@ -37,7 +38,7 @@ public class FanMessageDailyQuota {
     }
 
     private Instant nextMidnight() {
-        return LocalDate.now().plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant();
+        return LocalDate.now(ZONE).plusDays(1).atStartOfDay(ZONE).toInstant();
     }
 
     private String key(Long fanUserId, Long artistId) {
