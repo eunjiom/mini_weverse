@@ -1,11 +1,9 @@
 package com.miniweverse.chat.membership;
 
-import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
-import com.github.benmanes.caffeine.cache.Expiry;
-import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.time.ZoneId;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 
 /**
@@ -15,43 +13,38 @@ import org.springframework.stereotype.Component;
  *
  * 이 두 경로가 상태 변화를 전부 커버하므로, true/false 둘 다 "다음 자정까지" 안전하게
  * 캐싱할 수 있다 — false로 캐싱된 뒤 구독이 들어와도 markActive가 즉시 true로 덮어쓴다.
+ *
+ * chat-service 인스턴스가 여러 개로 늘어나도 전부 이 값을 공유해야 해서 Caffeine(로컬) 대신
+ * Redis를 쓴다. community-service와 같은 Redis 서버를 쓰지만 DB index(1)로 분리해서 키가
+ * 섞이지 않는다(community-service는 DB 0).
  */
 @Component
 public class MembershipCache {
 
-    private final Cache<CacheKey, Boolean> cache = Caffeine.newBuilder()
-            .expireAfter(new Expiry<CacheKey, Boolean>() {
-                @Override
-                public long expireAfterCreate(CacheKey key, Boolean value, long currentTime) {
-                    return untilNextMidnightNanos();
-                }
+    private static final String KEY_PREFIX = "chat:membership:";
 
-                @Override
-                public long expireAfterUpdate(CacheKey key, Boolean value, long currentTime, long currentDuration) {
-                    return currentDuration;
-                }
+    private final StringRedisTemplate redisTemplate;
 
-                @Override
-                public long expireAfterRead(CacheKey key, Boolean value, long currentTime, long currentDuration) {
-                    return currentDuration;
-                }
-            })
-            .build();
+    public MembershipCache(StringRedisTemplate redisTemplate) {
+        this.redisTemplate = redisTemplate;
+    }
 
     public Boolean getIfPresent(Long fanUserId, Long artistId) {
-        return cache.getIfPresent(new CacheKey(fanUserId, artistId));
+        String value = redisTemplate.opsForValue().get(key(fanUserId, artistId));
+        return value == null ? null : Boolean.valueOf(value);
     }
 
     public void put(Long fanUserId, Long artistId, boolean active) {
-        cache.put(new CacheKey(fanUserId, artistId), active);
+        String key = key(fanUserId, artistId);
+        redisTemplate.opsForValue().set(key, String.valueOf(active));
+        redisTemplate.expireAt(key, nextMidnight());
     }
 
-    private long untilNextMidnightNanos() {
-        LocalDateTime now = LocalDateTime.now();
-        LocalDateTime nextMidnight = LocalDate.now().plusDays(1).atStartOfDay();
-        return Duration.between(now, nextMidnight).toNanos();
+    private Instant nextMidnight() {
+        return LocalDate.now().plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant();
     }
 
-    private record CacheKey(Long fanUserId, Long artistId) {
+    private String key(Long fanUserId, Long artistId) {
+        return KEY_PREFIX + fanUserId + ":" + artistId;
     }
 }
