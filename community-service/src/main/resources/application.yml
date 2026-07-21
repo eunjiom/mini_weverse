@@ -58,3 +58,15 @@ chat-service:
 
 internal:
   service-secret: ${INTERNAL_SERVICE_SECRET:mini-weverse-internal-secret}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus
+  tracing:
+    sampling:
+      probability: 1.0
+  zipkin:
+    tracing:
+      endpoint: http://${ZIPKIN_HOST:localhost}:9411/api/v2/spans
