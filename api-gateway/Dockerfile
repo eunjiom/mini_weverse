@@ -2,6 +2,6 @@ FROM eclipse-temurin:21-jre-alpine
 
 WORKDIR /app
 
-COPY community-service/build/libs/*.jar app.jar
+COPY build/libs/*.jar app.jar
 
 ENTRYPOINT ["java", "-jar", "app.jar"]

@@ -1,0 +1,59 @@
+# 앱 서비스 3개(community-service, chat-service, api-gateway) 전용 compose 파일.
+# DB/인프라(postgres, redis)는 docker-compose.yml에 그대로 두고 분리 관리한다.
+# 같이 띄울 때: docker compose -f docker-compose.yml -f docker-compose.services.yml up -d
+services:
+  community-service:
+    build:
+      context: ./community-service
+    container_name: mini-weverse-community
+    environment:
+      DB_HOST: postgres
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      CHAT_SERVICE_URL: http://chat-service:8082
+      KAKAO_CLIENT_ID: ${KAKAO_CLIENT_ID}
+      KAKAO_CLIENT_SECRET: ${KAKAO_CLIENT_SECRET}
+    ports:
+      - "8081:8081"
+    volumes:
+      - ./community-service/keys:/app/keys:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  chat-service:
+    build:
+      context: ./chat-service
+    container_name: mini-weverse-chat
+    environment:
+      DB_HOST: postgres
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      COMMUNITY_SERVICE_URL: http://community-service:8081
+    ports:
+      - "8082:8082"
+    volumes:
+      - ./chat-service/keys:/app/keys:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  api-gateway:
+    build:
+      context: ./api-gateway
+    container_name: mini-weverse-gateway
+    environment:
+      CHAT_SERVICE_WS_URL: ws://chat-service:8082
+      CHAT_SERVICE_URL: http://chat-service:8082
+      COMMUNITY_SERVICE_URL: http://community-service:8081
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./api-gateway/keys:/app/keys:ro
+    depends_on:
+      - community-service
+      - chat-service
