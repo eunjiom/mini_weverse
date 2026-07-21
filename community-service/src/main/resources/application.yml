@@ -5,7 +5,7 @@ spring:
   application:
     name: mini-weverse
   datasource:
-    url: jdbc:postgresql://localhost:5432/mini_weverse
+    url: jdbc:postgresql://${DB_HOST:localhost}:5432/mini_weverse
     username: mini_weverse
     password: mini_weverse
   jpa:
@@ -23,8 +23,26 @@ spring:
       mode: always
   data:
     redis:
-      host: localhost
-      port: 6380
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6380}
+      database: 0
+  security:
+    oauth2:
+      client:
+        registration:
+          kakao:
+            client-id: ${KAKAO_CLIENT_ID}
+            client-secret: ${KAKAO_CLIENT_SECRET}
+            authorization-grant-type: authorization_code
+            redirect-uri: "{baseUrl}/login/oauth2/code/kakao"
+            client-authentication-method: client_secret_post
+            scope: profile_nickname, account_email
+        provider:
+          kakao:
+            authorization-uri: https://kauth.kakao.com/oauth/authorize
+            token-uri: https://kauth.kakao.com/oauth/token
+            user-info-uri: https://kapi.kakao.com/v2/user/me
+            user-name-attribute: id
 
 jwt:
   private-key-path: keys/private.pem
@@ -36,7 +54,7 @@ cookie:
   secure: true
 
 chat-service:
-  base-url: http://localhost:8082
+  base-url: ${CHAT_SERVICE_URL:http://localhost:8082}
 
 internal:
   service-secret: ${INTERNAL_SERVICE_SECRET:mini-weverse-internal-secret}

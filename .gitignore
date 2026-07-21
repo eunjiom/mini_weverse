@@ -4,6 +4,7 @@ build/
 docs/
 **/keys/*.pem
 application-local.yml
+.env
 !gradle/wrapper/gradle-wrapper.jar
 !**/src/main/**/build/
 !**/src/test/**/build/
