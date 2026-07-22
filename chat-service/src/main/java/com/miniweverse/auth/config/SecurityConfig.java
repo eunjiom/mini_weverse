@@ -51,6 +51,8 @@ public class SecurityConfig {
                         // 다른 내부 서비스(community-service 등)가 게이트웨이를 거치지 않고 직접
                         // 호출하는 서비스 간 전용 API. 유저 JWT가 없는 호출이라 내부망 신뢰 전제로 permitAll.
                         .requestMatchers("/internal/**").permitAll()
+                        // Prometheus가 유저 JWT 없이 스크레이프한다 — health/prometheus 2개만 노출 중(management.endpoints.web.exposure.include).
+                        .requestMatchers("/actuator/**").permitAll()
                         .anyRequest().authenticated())
                 .exceptionHandling(ex -> ex.authenticationEntryPoint(jwtAuthenticationEntryPoint))
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)

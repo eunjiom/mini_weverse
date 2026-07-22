@@ -72,6 +72,8 @@ public class SecurityConfig {
                         // 다른 내부 서비스(chat-service 등)가 게이트웨이를 거치지 않고 직접 호출하는
                         // 서비스 간 전용 API. 유저 JWT가 없는 호출이라 내부망 신뢰를 전제로 permitAll.
                         .requestMatchers("/internal/**").permitAll()
+                        // Prometheus가 유저 JWT 없이 스크레이프한다 — health/prometheus 2개만 노출 중(management.endpoints.web.exposure.include).
+                        .requestMatchers("/actuator/**").permitAll()
                         // 커뮤니티 라운지 열람(게시글/댓글 목록 조회)은 로그인 없이 공개한다 — 작성은 permitAll 대상이 아니라 그대로 인증이 필요하다.
                         .requestMatchers(HttpMethod.GET, "/artists", "/artists/*/posts", "/posts/*", "/posts/*/comments").permitAll()
                         .anyRequest().authenticated())

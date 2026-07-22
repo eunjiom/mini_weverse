@@ -1,0 +1,47 @@
+# 모니터링 전용 컨테이너 묶음(Zipkin/Prometheus/Grafana). 비즈니스 로직이 없는 관찰 도구라
+# MSA 서비스(docker-compose.services.yml)와는 별도 파일로 분리한다.
+# 같이 띄울 때: docker compose -f docker-compose.yml -f docker-compose.services.yml -f docker-compose.monitoring.yml up -d
+services:
+  zipkin:
+    image: openzipkin/zipkin:3.6.1
+    container_name: mini-weverse-zipkin
+    ports:
+      - "9411:9411"
+
+  prometheus:
+    image: prom/prometheus:v3.11.3
+    container_name: mini-weverse-prometheus
+    # exemplar-storage: Grafana에서 메트릭 그래프의 특정 지점을 클릭해 그 순간의 Zipkin 트레이스로
+    # 바로 이동할 수 있게 해준다(과부하 발생 시점 → 원인 요청 추적). 기본 CMD에 있던 나머지 플래그는
+    # command를 직접 지정하면서 같이 유지해야 한다(이미지 기본값이 사라지므로).
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --web.console.libraries=/etc/prometheus/console_libraries
+      - --web.console.templates=/etc/prometheus/consoles
+      - --web.enable-lifecycle
+      - --enable-feature=exemplar-storage
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    ports:
+      - "9090:9090"
+
+  grafana:
+    image: grafana/grafana:13.0.1
+    container_name: mini-weverse-grafana
+    environment:
+      # 로컬 개발 기본값. 실제 배포 시엔 반드시 환경변수로 덮어써야 한다.
+      GF_SECURITY_ADMIN_PASSWORD: ${GF_SECURITY_ADMIN_PASSWORD:-admin}
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+
+volumes:
+  grafana-data:
+  prometheus-data:
