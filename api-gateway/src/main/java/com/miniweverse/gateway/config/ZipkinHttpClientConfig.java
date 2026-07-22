@@ -17,7 +17,7 @@ import zipkin2.reporter.urlconnection.URLConnectionSender;
 public class ZipkinHttpClientConfig {
 
     @Bean
-    public BytesMessageSender zipkinSender(@Value("${management.zipkin.tracing.endpoint}") String endpoint) {
+    public BytesMessageSender zipkinSender(@Value("${management.tracing.export.zipkin.endpoint}") String endpoint) {
         return URLConnectionSender.newBuilder()
                 .endpoint(endpoint)
                 .build();
