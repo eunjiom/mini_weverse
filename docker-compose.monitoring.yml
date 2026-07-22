@@ -3,13 +3,13 @@
 # 같이 띄울 때: docker compose -f docker-compose.yml -f docker-compose.services.yml -f docker-compose.monitoring.yml up -d
 services:
   zipkin:
-    image: openzipkin/zipkin:latest
+    image: openzipkin/zipkin:3.6.1
     container_name: mini-weverse-zipkin
     ports:
       - "9411:9411"
 
   prometheus:
-    image: prom/prometheus:latest
+    image: prom/prometheus:v3.11.3
     container_name: mini-weverse-prometheus
     # exemplar-storage: Grafana에서 메트릭 그래프의 특정 지점을 클릭해 그 순간의 Zipkin 트레이스로
     # 바로 이동할 수 있게 해준다(과부하 발생 시점 → 원인 요청 추적). 기본 CMD에 있던 나머지 플래그는
@@ -23,14 +23,16 @@ services:
       - --enable-feature=exemplar-storage
     volumes:
       - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
     ports:
       - "9090:9090"
 
   grafana:
-    image: grafana/grafana:latest
+    image: grafana/grafana:13.0.1
     container_name: mini-weverse-grafana
     environment:
-      GF_SECURITY_ADMIN_PASSWORD: admin
+      # 로컬 개발 기본값. 실제 배포 시엔 반드시 환경변수로 덮어써야 한다.
+      GF_SECURITY_ADMIN_PASSWORD: ${GF_SECURITY_ADMIN_PASSWORD:-admin}
     volumes:
       - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
       - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
@@ -42,3 +44,4 @@ services:
 
 volumes:
   grafana-data:
+  prometheus-data:
