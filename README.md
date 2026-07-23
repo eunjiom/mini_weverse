@@ -125,7 +125,7 @@ mini_weverse는 커뮤니티·멤버십·실시간 채팅이 독립된 서비스
 
 ### 📡 2.1 서비스 간 통신
 
-![서비스 간 통신 흐름 다이어그램](image/서비스간흐름2.png)
+![MSA 서비스](image/msa%20서비스.png)
 
 ### 🔐 2.2 API Gateway
 
@@ -310,6 +310,56 @@ mini_weverse는 커뮤니티·멤버십·실시간 채팅이 독립된 서비스
 | **바로 저장 시도 + 실패 캐치 + DB 유니크 인덱스 (선택)** | 동시 요청에도 DB가 최종 방어선이 되어 중복이 원천 차단됨 | 제약 위반 예외를 의미있는 처리로 변환하는 코드 추가 필요 |
 
 **선택 이유**: 애플리케이션 로직만으로는 동시 요청 경합을 완전히 막을 수 없어서, DB의 부분 유니크 인덱스(같은 팬-아티스트 조합에 "열린" 기간은 하나만)를 실질적인 최종 방어선으로 둠
+
+</details>
+
+### 📊 2.5 Monitoring
+
+<details>
+<summary>Zipkin 전송 방식 (HttpClient 센더 vs URLConnectionSender)</summary>
+
+**주요기능 설명**: 3개 서비스에 Actuator+Micrometer 계측을 추가해 Zipkin(분산 트레이싱)·Prometheus(메트릭)를 연동. `docker-compose.monitoring.yml`을 별도로 분리해 모니터링 스택만 독립적으로 기동 가능하게 함
+
+**트레이드오프**
+
+| 방식 | 장점 | 단점 |
+|---|---|---|
+| 기본 HttpClient 센더 | Spring Boot 기본값, 별도 설정 불필요 | 앱 환경에서 `ConnectException` 발생(격리 환경에선 재현 안 돼 원인 100% 확정은 못함, 동시성/부하 조건으로 추정) |
+| **URLConnectionSender (선택)** | 실제 앱 환경에서 안정적으로 동작 확인됨 | 기본값이 아니라 명시적으로 교체 필요 |
+
+**선택 이유**: 원인을 완전히 확정하진 못했지만, 워크어라운드로 안정 동작이 검증돼서 채택. 모니터링 스택을 별도 compose 파일로 분리한 것도 서비스 배포와 모니터링 인프라 기동을 독립시키기 위함
+
+</details>
+
+<details>
+<summary>메트릭/트레이스 수집 방식 (pull vs push)</summary>
+
+**주요기능 설명**: Prometheus는 각 서비스의 `/actuator/prometheus`를 직접 찾아가 가져오고(pull), Zipkin은 각 서비스가 스스로 전송(push)
+
+**트레이드오프**
+
+| 방식 | 장점 | 단점 |
+|---|---|---|
+| 전부 pull로 통일 | 수집 방식이 하나라 관리 단순 | Zipkin은 원래 push 기반이라 억지로 pull화하면 스팬 수집 구조를 다시 짜야 함 |
+| **서비스별 표준 방식대로 분리 (선택)** | Prometheus는 pull, Zipkin은 push가 각자의 표준 방식이라 그대로 사용 | 두 가지 수집 방식이 공존해 인프라 구성이 한 가지로 안 통일됨 |
+
+**선택 이유**: 두 도구 다 표준 수집 방식이 이미 정해져 있어서 억지로 통일하지 않음. 서비스마다 개별로 주고받는 구조라 어느 서비스가 부하 걸렸는지 서비스 단위로도 구분 가능
+
+</details>
+
+<details>
+<summary>Grafana-Zipkin exemplar 연동</summary>
+
+**주요기능 설명**: 메트릭 그래프의 스파이크 지점(exemplar)을 클릭하면 그 순간의 Zipkin 트레이스로 바로 이동(Prometheus `--enable-feature=exemplar-storage` + Grafana `exemplarTraceIdDestinations`)
+
+**트레이드오프**
+
+| 방식 | 장점 | 단점 |
+|---|---|---|
+| exemplar 없이 수동 대조 | 추가 설정 불필요 | 메트릭에서 이상 시각을 보고 Zipkin에서 그 시간대를 따로 검색해야 함(수동, 여러 단계) |
+| **exemplar 연동 (선택)** | 스파이크 지점 클릭 한 번으로 해당 트레이스 바로 확인 | Prometheus·Grafana 양쪽에 추가 설정 필요 |
+
+**선택 이유**: 장애 원인 분석 시간을 단축하기 위해, 메트릭과 트레이스를 수동으로 대조하는 과정 자체를 없앰
 
 </details>
 
