@@ -166,7 +166,7 @@ mini_weverse는 커뮤니티·멤버십·실시간 채팅이 독립된 서비스
 <details>
 <summary>인증 토큰 관리 (Access/Refresh 분리 + RT Rotation)</summary>
 
-**주요기능 설명**: 일반 유저(`/api/**`)는 access(JWT)/refresh(서버 세션·Redis) 분리 + RT Rotation. **관리자(`/admin/**`)는 이와 별도로 완전히 Session 인증** — `SecurityConfig`에 필터체인 자체가 `adminFilterChain`/`apiFilterChain`으로 분리되어 있어, 관리자는 JWT를 아예 쓰지 않고 세션 쿠키로만 인증
+**주요기능 설명**: 일반 유저(`/api/**`)는 access(JWT, 유효기간 30분)/refresh(서버 세션·Redis, 유효기간 7일) 분리 + RT Rotation. **관리자(`/admin/**`)는 이와 별도로 완전히 Session 인증** — `SecurityConfig`에 필터체인 자체가 `adminFilterChain`/`apiFilterChain`으로 분리되어 있어, 관리자는 JWT를 아예 쓰지 않고 세션 쿠키로만 인증
 
 **트레이드오프**
 
