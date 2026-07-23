@@ -23,6 +23,9 @@ class FanMessageDailyQuotaTest extends RedisTestSupport {
     void setUp() {
         redisTemplate = newRedisTemplate();
         quota = new FanMessageDailyQuota(redisTemplate);
+        // 정적(싱글턴) 컨테이너를 여러 테스트가 공유하므로, 이전 테스트가 남긴 카운터가
+        // 실행 순서에 따라 다음 테스트에 영향을 주지 않도록 매번 깨끗하게 지우고 시작한다.
+        redisTemplate.delete(redisTemplate.keys("chat:quota:*"));
     }
 
     @Test

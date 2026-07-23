@@ -79,6 +79,20 @@ class RoleAuthorizationGlobalFilterTest {
         filter.filter(exchange, chain).block();
 
         verify(chain, times(1)).filter(exchange);
+        verify(jwtVerifier, times(1)).parseClaims("valid-token");
+    }
+
+    @Test
+    void ROLE_RESTRICTED_규칙에서_허용된_role이면_체인을_통과시킨다() {
+        ServerWebExchange exchange = exchangeFor(HttpMethod.GET, "/api/chat/rooms", "valid-token");
+        given(routeAccessPolicy.resolve(HttpMethod.GET, "/api/chat/rooms"))
+                .willReturn(AccessRule.restricted("/api/chat/**", com.miniweverse.common.security.jwt.Role.FAN, com.miniweverse.common.security.jwt.Role.ARTIST));
+        given(jwtVerifier.parseClaims("valid-token")).willReturn(claimsWithRole("FAN"));
+        given(chain.filter(exchange)).willReturn(Mono.empty());
+
+        filter.filter(exchange, chain).block();
+
+        verify(chain, times(1)).filter(exchange);
     }
 
     @Test

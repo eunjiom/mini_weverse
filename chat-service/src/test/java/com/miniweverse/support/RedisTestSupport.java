@@ -1,5 +1,6 @@
 package com.miniweverse.support;
 
+import org.junit.jupiter.api.AfterEach;
 import org.springframework.data.redis.connection.RedisStandaloneConfiguration;
 import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -23,14 +24,24 @@ public abstract class RedisTestSupport {
         REDIS.start();
     }
 
+    private LettuceConnectionFactory connectionFactory;
+
     protected StringRedisTemplate newRedisTemplate() {
         RedisStandaloneConfiguration configuration = new RedisStandaloneConfiguration(
                 REDIS.getHost(), REDIS.getMappedPort(REDIS_PORT)
         );
-        LettuceConnectionFactory connectionFactory = new LettuceConnectionFactory(configuration);
+        connectionFactory = new LettuceConnectionFactory(configuration);
         connectionFactory.afterPropertiesSet();
         StringRedisTemplate redisTemplate = new StringRedisTemplate(connectionFactory);
         redisTemplate.afterPropertiesSet();
         return redisTemplate;
+    }
+
+    /** 테스트마다 새로 만드는 LettuceConnectionFactory가 내부 Netty 리소스를 안 놓아주면 누적되므로 정리한다. */
+    @AfterEach
+    void destroyRedisConnectionFactory() {
+        if (connectionFactory != null) {
+            connectionFactory.destroy();
+        }
     }
 }
