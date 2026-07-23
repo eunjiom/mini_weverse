@@ -3,6 +3,7 @@ package com.miniweverse.membership.service;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.miniweverse.common.security.jwt.Role;
+import com.miniweverse.exception.AuthUserExceptions.InvalidRequestException;
 import com.miniweverse.membership.entity.Membership;
 import com.miniweverse.membership.outbox.MembershipOutboxEvent;
 import com.miniweverse.membership.outbox.MembershipOutboxEventRepository;
@@ -19,6 +20,7 @@ import com.miniweverse.user.repository.ArtistProfileRepository;
 import com.miniweverse.user.repository.UserRepository;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -152,26 +154,32 @@ class MembershipServiceTest extends PostgresTestSupport {
 
         try {
             int threadCount = 2;
-            ExecutorService executor = Executors.newFixedThreadPool(threadCount);
             CountDownLatch startLatch = new CountDownLatch(1);
             CountDownLatch doneLatch = new CountDownLatch(threadCount);
+            List<Throwable> unexpectedFailures = new CopyOnWriteArrayList<>();
 
-            for (int i = 0; i < threadCount; i++) {
-                executor.submit(() -> {
-                    try {
-                        startLatch.await();
-                        membershipService.subscribe(concurrentSubscriber.getId(), concurrentArtist.getId());
-                    } catch (Exception ignored) {
-                        // 동시 최초구독 중 하나는 유니크 제약 위반 → InvalidRequestException — 정상 동작
-                    } finally {
-                        doneLatch.countDown();
-                    }
-                });
+            try (ExecutorService executor = Executors.newFixedThreadPool(threadCount)) {
+                for (int i = 0; i < threadCount; i++) {
+                    executor.submit(() -> {
+                        try {
+                            startLatch.await();
+                            membershipService.subscribe(concurrentSubscriber.getId(), concurrentArtist.getId());
+                        } catch (InvalidRequestException expected) {
+                            // 동시 최초구독 중 하나는 유니크 제약 위반 → InvalidRequestException — 정상 동작
+                        } catch (Throwable unexpected) {
+                            // 유니크 제약 위반이 아닌 다른 실패(NPE, 커넥션 오류 등)는 조용히 넘기지
+                            // 않고 기록해서 테스트가 실패하게 한다 — 진짜 문제를 숨기지 않기 위함.
+                            unexpectedFailures.add(unexpected);
+                        } finally {
+                            doneLatch.countDown();
+                        }
+                    });
+                }
+                startLatch.countDown();
+                doneLatch.await();
             }
-            startLatch.countDown();
-            doneLatch.await();
-            executor.shutdown();
 
+            assertThat(unexpectedFailures).isEmpty();
             List<Membership> memberships = membershipRepository.findAll().stream()
                     .filter(m -> m.getSubscriber().getId().equals(concurrentSubscriber.getId()))
                     .toList();
@@ -179,6 +187,72 @@ class MembershipServiceTest extends PostgresTestSupport {
         } finally {
             // 이 테스트는 트랜잭션이 꺼져있어 자동 롤백이 안 되므로, setUp이 만든 것까지 포함해
             // 전부 지워서 다음 테스트가 깨끗한 상태에서 시작하게 한다(이메일 유니크 제약 충돌 방지).
+            outboxEventRepository.deleteAll();
+            membershipPeriodRepository.deleteAll();
+            membershipRepository.deleteAll();
+            artistProfileRepository.deleteAll();
+            userRepository.deleteAll();
+        }
+    }
+
+    /**
+     * 기존 활성 멤버십이 있는 상태에서의 동시 재구독은 최초구독과 달리 락으로 막힌 상황이다 —
+     * findBySubscriberAndArtist가 이미 존재하는 row에 PESSIMISTIC_WRITE를 걸어, 두 스레드가
+     * 순서대로 직렬화되어 각자 정상적으로 연장(renew)에 성공한다(유니크 제약에 걸릴 일이 없음).
+     * renew()는 만료 전 연장이면 항상 startedNewPeriod=false를 반환하므로 새 기간은 안 열리고,
+     * subscribe()는 매 호출마다 무조건 아웃박스 이벤트를 하나씩 남기므로 성공한 호출 수만큼(2개)
+     * 이벤트가 쌓인다 — 멤버십/기간은 항상 정확히 1개로 수렴하는지가 이 테스트의 핵심이다.
+     */
+    @Test
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    void 동시에_두_스레드가_기존_활성_멤버십을_재구독해도_멤버십과_기간은_1개로_수렴한다() throws InterruptedException {
+        User concurrentSubscriber = userRepository.saveAndFlush(
+                User.createLocal("renew-concurrent-fan@test.com", "pw", "renew-concurrent-fan", Role.FAN));
+        User concurrentArtistUser = userRepository.saveAndFlush(
+                User.createLocal("renew-concurrent-artist@test.com", "pw", "renew-concurrent-artist", Role.ARTIST));
+        ArtistProfile concurrentArtist = artistProfileRepository.saveAndFlush(
+                ArtistProfile.create(concurrentArtistUser, "renew-concurrent-channel", null, ArtistCategory.SOLO, null, null));
+        Membership initial = membershipService.subscribe(concurrentSubscriber.getId(), concurrentArtist.getId());
+
+        try {
+            int threadCount = 2;
+            CountDownLatch startLatch = new CountDownLatch(1);
+            CountDownLatch doneLatch = new CountDownLatch(threadCount);
+            List<Throwable> unexpectedFailures = new CopyOnWriteArrayList<>();
+
+            try (ExecutorService executor = Executors.newFixedThreadPool(threadCount)) {
+                for (int i = 0; i < threadCount; i++) {
+                    executor.submit(() -> {
+                        try {
+                            startLatch.await();
+                            membershipService.subscribe(concurrentSubscriber.getId(), concurrentArtist.getId());
+                        } catch (Throwable unexpected) {
+                            // 이미 존재하는 멤버십의 재구독은 PESSIMISTIC_WRITE로 직렬화되어 둘 다
+                            // 성공해야 정상이다 — 어떤 예외든 나오면 그 자체가 버그이므로 기록한다.
+                            unexpectedFailures.add(unexpected);
+                        } finally {
+                            doneLatch.countDown();
+                        }
+                    });
+                }
+                startLatch.countDown();
+                doneLatch.await();
+            }
+
+            assertThat(unexpectedFailures).isEmpty();
+
+            List<Membership> memberships = membershipRepository.findAll().stream()
+                    .filter(m -> m.getSubscriber().getId().equals(concurrentSubscriber.getId()))
+                    .toList();
+            assertThat(memberships).hasSize(1);
+            assertThat(memberships.get(0).getId()).isEqualTo(initial.getId());
+            assertThat(membershipPeriodRepository.findOpenPeriod(initial.getId())).isPresent();
+
+            List<MembershipOutboxEvent> events = outboxEventRepository.findAll().stream()
+                    .filter(e -> e.getFanUserId().equals(concurrentSubscriber.getId()) && e.getArtistId().equals(concurrentArtist.getId()))
+                    .toList();
+            assertThat(events).hasSize(3); // 최초구독 1건 + 동시 재구독 2건
+        } finally {
             outboxEventRepository.deleteAll();
             membershipPeriodRepository.deleteAll();
             membershipRepository.deleteAll();
