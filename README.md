@@ -166,16 +166,16 @@ mini_weverse는 커뮤니티·멤버십·실시간 채팅이 독립된 서비스
 <details>
 <summary>인증 토큰 관리 (Access/Refresh 분리 + RT Rotation)</summary>
 
-**주요기능 설명**: 일반 유저(`/api/**`)는 access(JWT)/refresh(서버 세션·Redis) 분리 + RT Rotation. **관리자(`/admin/**`)는 이와 별도로 완전히 Session 인증** — `SecurityConfig`에 필터체인 자체가 `adminFilterChain`/`apiFilterChain`으로 분리되어 있어, 관리자는 JWT를 아예 쓰지 않고 세션 쿠키로만 인증
+**주요기능 설명**: 일반 유저(`/admin/**` 제외 전체)는 access(JWT, 유효기간 30분)/refresh(JWT, Redis 저장 + 쿠키 전달, 유효기간 7일) 분리 + RT Rotation. **관리자(`/admin/**`)는 이와 별도로 완전히 Session 인증** — `SecurityConfig`에 필터체인 자체가 `adminFilterChain`/`apiFilterChain`으로 분리되어 있어, 관리자는 JWT를 아예 쓰지 않고 세션 쿠키로만 인증
 
 **트레이드오프**
 
 | 기술 | 장점 | 단점 | 적용 대상 |
 |---|---|---|---|
-| **JWT(Stateless, 일반 유저 선택)** | 서버가 상태를 안 가져 확장에 유리, MSA 구조에 적합 | 로그아웃/강제만료 처리가 번거로움(RT 저장소 필요) | `/api/**` |
+| **JWT(Stateless, 일반 유저 선택)** | 서버가 상태를 안 가져 확장에 유리, MSA 구조에 적합 | 로그아웃/강제만료 처리가 번거로움(RT 저장소 필요) | `/admin/**` 제외 전체 |
 | **Session(Stateful, 관리자 선택)** | 서버에서 즉시 무효화 가능, 구현 단순 | 서버가 상태를 들고 있어야 해서 확장 시 세션 클러스터링 필요 | `/admin/**` |
 | RT 재사용(갱신해도 기존 RT 유지) | 구현 단순 | RT가 탈취되면 만료 전까지 계속 악용 가능 | - |
-| **RT Rotation(갱신 시 새 RT 발급, 선택)** | 탈취된 RT가 한 번 쓰이면 무효화되어 피해 범위 축소 | 멀티 디바이스 동시 갱신 시 race condition 가능(멀티 디바이스 미지원이라 리스크로 수용) | `/api/**` |
+| **RT Rotation(갱신 시 새 RT 발급, 선택)** | 탈취된 RT가 한 번 쓰이면 무효화되어 피해 범위 축소 | 멀티 디바이스 동시 갱신 시 race condition 가능(멀티 디바이스 미지원이라 리스크로 수용) | `/admin/**` 제외 전체 |
 
 **선택 이유**: 일반 유저는 트래픽이 많고 향후 확장을 고려해 stateless한 JWT를 선택. 반대로 관리자는 소수이고 즉각적인 권한 회수(강제 로그아웃)가 확장성보다 더 중요해 Session을 선택 — 그래서 하나의 방식으로 통일하지 않고 역할별로 필터체인 자체를 분리함. 일반 유저 쪽은 탈취 시 피해를 최소화하기 위해 RT도 재사용이 아닌 Rotation 방식을 채택
 
