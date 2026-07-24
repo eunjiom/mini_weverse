@@ -1,7 +1,7 @@
 package com.miniweverse.auth.jwt;
 
+import com.miniweverse.common.exception.JwtAuthErrorCode;
 import com.miniweverse.common.response.ApiResponse;
-import com.miniweverse.exception.code.AuthUserErrorCode;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
@@ -31,9 +31,9 @@ public class JwtAuthenticationEntryPoint implements AuthenticationEntryPoint {
             AuthenticationException authException
     ) throws IOException {
         Object attribute = request.getAttribute(JwtAuthenticationFilter.TOKEN_ERROR_ATTRIBUTE);
-        AuthUserErrorCode errorCode = attribute instanceof AuthUserErrorCode code
+        JwtAuthErrorCode errorCode = attribute instanceof JwtAuthErrorCode code
                 ? code
-                : AuthUserErrorCode.AUTHENTICATION_REQUIRED;
+                : JwtAuthErrorCode.authenticationRequired("AUTH_USER_011");
 
         response.setStatus(errorCode.getHttpStatus().value());
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);

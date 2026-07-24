@@ -1,7 +1,7 @@
 package com.miniweverse.auth.jwt;
 
+import com.miniweverse.common.exception.JwtAuthErrorCode;
 import com.miniweverse.common.security.jwt.JwtVerifier;
-import com.miniweverse.exception.code.NotificationErrorCode;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;
@@ -46,7 +46,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             try {
                 Claims claims = jwtVerifier.parseClaims(token);
                 if (!JwtVerifier.TOKEN_TYPE_ACCESS.equals(claims.get(JwtVerifier.CLAIM_TOKEN_TYPE, String.class))) {
-                    request.setAttribute(TOKEN_ERROR_ATTRIBUTE, NotificationErrorCode.INVALID_TOKEN);
+                    request.setAttribute(TOKEN_ERROR_ATTRIBUTE, JwtAuthErrorCode.invalidToken("NOTIFICATION_003"));
                     SecurityContextHolder.clearContext();
                 } else {
                     Long userId = Long.valueOf(claims.getSubject());
@@ -57,10 +57,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     SecurityContextHolder.getContext().setAuthentication(authentication);
                 }
             } catch (ExpiredJwtException e) {
-                request.setAttribute(TOKEN_ERROR_ATTRIBUTE, NotificationErrorCode.TOKEN_EXPIRED);
+                request.setAttribute(TOKEN_ERROR_ATTRIBUTE, JwtAuthErrorCode.tokenExpired("NOTIFICATION_002"));
                 SecurityContextHolder.clearContext();
             } catch (JwtException | IllegalArgumentException e) {
-                request.setAttribute(TOKEN_ERROR_ATTRIBUTE, NotificationErrorCode.INVALID_TOKEN);
+                request.setAttribute(TOKEN_ERROR_ATTRIBUTE, JwtAuthErrorCode.invalidToken("NOTIFICATION_003"));
                 SecurityContextHolder.clearContext();
             }
         }
