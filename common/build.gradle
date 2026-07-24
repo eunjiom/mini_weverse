@@ -7,6 +7,7 @@ dependencies {
     api 'org.springframework:spring-web'
     api 'jakarta.validation:jakarta.validation-api'
     api 'io.jsonwebtoken:jjwt-api:0.13.0'
+    api 'org.springframework.kafka:spring-kafka'
     compileOnly 'jakarta.servlet:jakarta.servlet-api'
     compileOnly 'org.springframework:spring-webmvc'
 }

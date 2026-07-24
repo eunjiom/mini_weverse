@@ -1,0 +1,41 @@
+server:
+  port: 8083
+
+spring:
+  application:
+    name: mini-weverse-notification
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6380}
+      database: 2
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      group-id: notification-service
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: com.miniweverse.common.notification
+        spring.json.value.default.type: com.miniweverse.common.notification.NotificationEvent
+        spring.json.use.type.headers: false
+
+jwt:
+  public-key-path: keys/public.pem
+
+notification:
+  redis:
+    ttl-days: 7
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus
+  tracing:
+    sampling:
+      probability: 1.0
+    export:
+      zipkin:
+        endpoint: http://${ZIPKIN_HOST:localhost}:9411/api/v2/spans
