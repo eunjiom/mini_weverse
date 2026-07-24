@@ -6,6 +6,8 @@ import com.miniweverse.common.exception.ErrorCode;
 import com.miniweverse.common.response.ApiResponse;
 import jakarta.validation.ConstraintViolationException;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
@@ -21,6 +23,8 @@ import org.springframework.web.servlet.resource.NoResourceFoundException;
  */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     @ExceptionHandler(BusinessException.class)
     public ResponseEntity<ApiResponse<Void>> handleBusinessException(BusinessException e) {
@@ -77,6 +81,9 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Void>> handleException(Exception e) {
+        // 예상 못한(도메인 예외로 분류 안 된) 예외라 원인을 반드시 남겨야 한다 — 지금까지는
+        // 아무 로그 없이 그냥 500만 내려가서 실제 원인 파악이 안 되는 문제가 있었다.
+        log.error("처리되지 않은 예외 발생", e);
         return ResponseEntity.status(CommonErrorCode.INTERNAL_SERVER_ERROR.getHttpStatus())
                 .body(ApiResponse.error(CommonErrorCode.INTERNAL_SERVER_ERROR));
     }
