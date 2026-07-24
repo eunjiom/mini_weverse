@@ -1,5 +1,8 @@
 package com.miniweverse.follow.service;
 
+import com.miniweverse.common.notification.NotificationType;
+import com.miniweverse.common.notification.outbox.NotificationOutboxEvent;
+import com.miniweverse.common.notification.outbox.NotificationOutboxEventRepository;
 import com.miniweverse.exception.AuthUserExceptions.DuplicateFollowException;
 import com.miniweverse.exception.AuthUserExceptions.InvalidRequestException;
 import com.miniweverse.follow.dto.FollowedArtistResponse;
@@ -20,15 +23,18 @@ public class FollowService {
     private final FollowRepository followRepository;
     private final UserRepository userRepository;
     private final ArtistProfileRepository artistProfileRepository;
+    private final NotificationOutboxEventRepository notificationOutboxEventRepository;
 
     public FollowService(
             FollowRepository followRepository,
             UserRepository userRepository,
-            ArtistProfileRepository artistProfileRepository
+            ArtistProfileRepository artistProfileRepository,
+            NotificationOutboxEventRepository notificationOutboxEventRepository
     ) {
         this.followRepository = followRepository;
         this.userRepository = userRepository;
         this.artistProfileRepository = artistProfileRepository;
+        this.notificationOutboxEventRepository = notificationOutboxEventRepository;
     }
 
     @Transactional
@@ -48,6 +54,12 @@ public class FollowService {
             // 동시 요청으로 중복 확인을 통과한 뒤 유니크 제약에서 걸린 경우.
             throw new DuplicateFollowException();
         }
+        notificationOutboxEventRepository.save(NotificationOutboxEvent.of(
+                NotificationType.NEW_FOLLOWER,
+                artist.requireOwner().getId(),
+                "새 팔로워",
+                follower.getNickname() + "님이 팔로우하기 시작했습니다."
+        ));
     }
 
     public List<FollowedArtistResponse> getFollowedArtists(Long followerId) {

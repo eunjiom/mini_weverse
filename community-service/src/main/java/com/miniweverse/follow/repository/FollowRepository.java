@@ -72,6 +72,23 @@ public class FollowRepository {
         return count != null ? count : 0L;
     }
 
+    /**
+     * artistProfileId를 팔로우 중인 팬 유저 id 목록 — 아티스트가 새 글을 올렸을 때 알림을
+     * fan-out할 대상을 정할 때 쓴다. 탈퇴한 팔로워는 제외한다(다른 조회들과 동일 조건).
+     */
+    public List<Long> findFollowerIds(Long artistProfileId) {
+        return jdbcTemplate.query(
+                """
+                SELECT f.follower_id AS follower_id
+                FROM follows f
+                JOIN users u ON u.id = f.follower_id AND u.deleted_at IS NULL
+                WHERE f.artist_id = ?
+                """,
+                (rs, rowNum) -> rs.getLong("follower_id"),
+                artistProfileId
+        );
+    }
+
     public boolean existsByFollowerAndArtist(Long followerId, Long artistId) {
         Boolean exists = jdbcTemplate.queryForObject(
                 "SELECT EXISTS(SELECT 1 FROM follows WHERE follower_id = ? AND artist_id = ?)",

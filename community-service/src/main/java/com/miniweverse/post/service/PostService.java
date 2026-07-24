@@ -1,5 +1,8 @@
 package com.miniweverse.post.service;
 
+import com.miniweverse.common.notification.NotificationType;
+import com.miniweverse.common.notification.outbox.NotificationOutboxEvent;
+import com.miniweverse.common.notification.outbox.NotificationOutboxEventRepository;
 import com.miniweverse.common.response.CursorPageResponse;
 import com.miniweverse.exception.AuthUserExceptions.InvalidRequestException;
 import com.miniweverse.exception.AuthUserExceptions.MembershipRequiredException;
@@ -29,6 +32,7 @@ public class PostService {
     private final FollowRepository followRepository;
     private final MembershipRepository membershipRepository;
     private final PostCacheService postCacheService;
+    private final NotificationOutboxEventRepository notificationOutboxEventRepository;
 
     public PostService(
             PostRepository postRepository,
@@ -36,7 +40,8 @@ public class PostService {
             ArtistProfileRepository artistProfileRepository,
             FollowRepository followRepository,
             MembershipRepository membershipRepository,
-            PostCacheService postCacheService
+            PostCacheService postCacheService,
+            NotificationOutboxEventRepository notificationOutboxEventRepository
     ) {
         this.postRepository = postRepository;
         this.userRepository = userRepository;
@@ -44,6 +49,7 @@ public class PostService {
         this.followRepository = followRepository;
         this.membershipRepository = membershipRepository;
         this.postCacheService = postCacheService;
+        this.notificationOutboxEventRepository = notificationOutboxEventRepository;
     }
 
     @Transactional
@@ -59,7 +65,24 @@ public class PostService {
 
         Post post = postRepository.save(Post.create(author, artistProfile, boardType, content, membersOnly));
         postCacheService.evictPosts(artistProfile, boardType);
+
+        // ARTIST 게시판은 Post.create()가 이미 "본인만 작성 가능"으로 검증해두므로, 여기 오면
+        // 항상 아티스트 본인이 쓴 글이다 — 팔로워 전원에게 새 글 알림을 fan-out한다(FEED 게시판은
+        // 팬이 쓴 글이라 이 알림 대상이 아니다).
+        if (boardType == BoardType.ARTIST) {
+            notifyFollowersOfNewPost(artistProfile);
+        }
         return post;
+    }
+
+    private void notifyFollowersOfNewPost(ArtistProfile artistProfile) {
+        String title = "새 게시글";
+        String message = artistProfile.getChannelName() + "님이 새 글을 올렸습니다.";
+        followRepository.findFollowerIds(artistProfile.getId()).forEach(followerId ->
+                notificationOutboxEventRepository.save(
+                        NotificationOutboxEvent.of(NotificationType.NEW_POST, followerId, title, message)
+                )
+        );
     }
 
     /**
