@@ -1,6 +1,10 @@
 package com.miniweverse.post.service;
 
+import com.miniweverse.common.notification.NotificationType;
+import com.miniweverse.common.notification.outbox.NotificationOutboxEvent;
+import com.miniweverse.common.notification.outbox.NotificationOutboxEventRepository;
 import com.miniweverse.common.response.CursorPageResponse;
+import com.miniweverse.common.security.jwt.Role;
 import com.miniweverse.exception.AuthUserExceptions.InvalidRequestException;
 import com.miniweverse.exception.AuthUserExceptions.MembershipRequiredException;
 import com.miniweverse.exception.AuthUserExceptions.NotFollowingArtistException;
@@ -29,19 +33,22 @@ public class CommentService {
     private final UserRepository userRepository;
     private final FollowRepository followRepository;
     private final MembershipRepository membershipRepository;
+    private final NotificationOutboxEventRepository notificationOutboxEventRepository;
 
     public CommentService(
             CommentRepository commentRepository,
             PostRepository postRepository,
             UserRepository userRepository,
             FollowRepository followRepository,
-            MembershipRepository membershipRepository
+            MembershipRepository membershipRepository,
+            NotificationOutboxEventRepository notificationOutboxEventRepository
     ) {
         this.commentRepository = commentRepository;
         this.postRepository = postRepository;
         this.userRepository = userRepository;
         this.followRepository = followRepository;
         this.membershipRepository = membershipRepository;
+        this.notificationOutboxEventRepository = notificationOutboxEventRepository;
     }
 
     @Transactional
@@ -54,7 +61,20 @@ public class CommentService {
         checkFollowAccess(authorId, post);
         checkMembershipAccess(authorId, post);
 
-        return commentRepository.save(Comment.create(post, author, content));
+        Comment comment = commentRepository.save(Comment.create(post, author, content));
+
+        // 자기 글에 자기가 댓글 단 경우와, 글쓴이가 아티스트인 경우(아티스트 대상 알림 미지원)는
+        // 알림 대상이 아니다.
+        User postAuthor = post.getAuthor();
+        if (postAuthor != null && postAuthor.getRole() != Role.ARTIST && !Objects.equals(postAuthor.getId(), authorId)) {
+            notificationOutboxEventRepository.save(NotificationOutboxEvent.of(
+                    NotificationType.NEW_COMMENT,
+                    postAuthor.getId(),
+                    "새 댓글",
+                    author.getNickname() + "님이 댓글을 남겼습니다."
+            ));
+        }
+        return comment;
     }
 
     @Transactional(readOnly = true)

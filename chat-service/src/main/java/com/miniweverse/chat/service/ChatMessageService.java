@@ -3,9 +3,13 @@ package com.miniweverse.chat.service;
 import com.miniweverse.chat.dto.ChatMessageResponse;
 import com.miniweverse.chat.entity.ChatMessage;
 import com.miniweverse.chat.entity.ChatRoom;
+import com.miniweverse.chat.membership.MembershipPeriodRepository;
 import com.miniweverse.chat.membership.MembershipVerifier;
 import com.miniweverse.chat.repository.ChatMessageRepository;
 import com.miniweverse.chat.repository.ChatRoomRepository;
+import com.miniweverse.common.notification.NotificationType;
+import com.miniweverse.common.notification.outbox.NotificationOutboxEvent;
+import com.miniweverse.common.notification.outbox.NotificationOutboxEventRepository;
 import com.miniweverse.common.response.CursorPageResponse;
 import com.miniweverse.exception.ChatExceptions.InvalidRequestException;
 import com.miniweverse.exception.ChatExceptions.MembershipRequiredException;
@@ -19,18 +23,26 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class ChatMessageService {
 
+    private static final String NEW_CHAT_MESSAGE_TITLE = "새 메시지";
+
     private final ChatRoomRepository chatRoomRepository;
     private final ChatMessageRepository chatMessageRepository;
     private final MembershipVerifier membershipVerifier;
+    private final MembershipPeriodRepository membershipPeriodRepository;
+    private final NotificationOutboxEventRepository notificationOutboxEventRepository;
 
     public ChatMessageService(
             ChatRoomRepository chatRoomRepository,
             ChatMessageRepository chatMessageRepository,
-            MembershipVerifier membershipVerifier
+            MembershipVerifier membershipVerifier,
+            MembershipPeriodRepository membershipPeriodRepository,
+            NotificationOutboxEventRepository notificationOutboxEventRepository
     ) {
         this.chatRoomRepository = chatRoomRepository;
         this.chatMessageRepository = chatMessageRepository;
         this.membershipVerifier = membershipVerifier;
+        this.membershipPeriodRepository = membershipPeriodRepository;
+        this.notificationOutboxEventRepository = notificationOutboxEventRepository;
     }
 
     // 멤버십 확인(캐시 미스 시 community-service 원격 호출)을 트랜잭션 밖에서 먼저 끝내서,
@@ -43,6 +55,7 @@ public class ChatMessageService {
         ChatRoom room = getRoom(artistId);
         ChatMessage message = ChatMessage.create(room, fanUserId, Role.FAN, content);
         chatMessageRepository.save(message);
+        // 팬 메시지의 수신자는 방 주인(아티스트) 1명뿐인데, 아티스트 대상 알림은 지원하지 않는다.
         return ChatMessageResponse.from(message);
     }
 
@@ -54,6 +67,12 @@ public class ChatMessageService {
         }
         ChatMessage message = ChatMessage.create(room, artistUserId, Role.ARTIST, content);
         chatMessageRepository.save(message);
+        // 아티스트의 방송은 지금 활성 구독 중인 팬 전원에게 fan-out한다.
+        membershipPeriodRepository.findFanUserIdsWithOpenPeriod(artistId).forEach(fanUserId ->
+                notificationOutboxEventRepository.save(NotificationOutboxEvent.of(
+                        NotificationType.NEW_CHAT_MESSAGE, fanUserId, NEW_CHAT_MESSAGE_TITLE, "구독 중인 아티스트가 메시지를 보냈습니다."
+                ))
+        );
         return ChatMessageResponse.from(message);
     }
 

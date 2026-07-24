@@ -17,6 +17,10 @@ spring:
               uri: ${CHAT_SERVICE_URL:http://localhost:8082}
               predicates:
                 - Path=/api/chat/**
+            - id: notification-service
+              uri: ${NOTIFICATION_SERVICE_URL:http://localhost:8083}
+              predicates:
+                - Path=/notifications/**
             - id: community-service
               uri: ${COMMUNITY_SERVICE_URL:http://localhost:8081}
               predicates:

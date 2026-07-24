@@ -1,5 +1,8 @@
 package com.miniweverse.membership.service;
 
+import com.miniweverse.common.notification.NotificationType;
+import com.miniweverse.common.notification.outbox.NotificationOutboxEvent;
+import com.miniweverse.common.notification.outbox.NotificationOutboxEventRepository;
 import com.miniweverse.exception.AuthUserExceptions.InvalidRequestException;
 import com.miniweverse.membership.dto.MyMembershipResponse;
 import com.miniweverse.membership.entity.Membership;
@@ -30,19 +33,22 @@ public class MembershipService {
     private final UserRepository userRepository;
     private final ArtistProfileRepository artistProfileRepository;
     private final MembershipOutboxEventRepository outboxEventRepository;
+    private final NotificationOutboxEventRepository notificationOutboxEventRepository;
 
     public MembershipService(
             MembershipRepository membershipRepository,
             MembershipPeriodRepository membershipPeriodRepository,
             UserRepository userRepository,
             ArtistProfileRepository artistProfileRepository,
-            MembershipOutboxEventRepository outboxEventRepository
+            MembershipOutboxEventRepository outboxEventRepository,
+            NotificationOutboxEventRepository notificationOutboxEventRepository
     ) {
         this.membershipRepository = membershipRepository;
         this.membershipPeriodRepository = membershipPeriodRepository;
         this.userRepository = userRepository;
         this.artistProfileRepository = artistProfileRepository;
         this.outboxEventRepository = outboxEventRepository;
+        this.notificationOutboxEventRepository = notificationOutboxEventRepository;
     }
 
     @Transactional
@@ -75,6 +81,12 @@ public class MembershipService {
         // chat-service 알림을 이 트랜잭션과 같이 커밋되는 아웃박스에 적재한다 — 알림 전송 자체가
         // 실패해도 구독 상태 변경과 분리되어 유실되지 않고, MembershipOutboxPublisher가 재시도한다.
         outboxEventRepository.save(MembershipOutboxEvent.activated(subscriber.getId(), artistProfile.getId(), newPeriodStartedAt));
+        notificationOutboxEventRepository.save(NotificationOutboxEvent.of(
+                NotificationType.MEMBERSHIP_ACTIVATED,
+                subscriber.getId(),
+                "멤버십 결제 완료",
+                artistProfile.getChannelName() + " 멤버십이 시작되었습니다."
+        ));
         return membership;
     }
 
@@ -150,6 +162,12 @@ public class MembershipService {
         ArtistProfile artist = membership.getArtist();
         if (artist != null) {
             outboxEventRepository.save(MembershipOutboxEvent.expired(membership.getSubscriber().getId(), artist.getId(), now));
+            notificationOutboxEventRepository.save(NotificationOutboxEvent.of(
+                    NotificationType.MEMBERSHIP_EXPIRED,
+                    membership.getSubscriber().getId(),
+                    "멤버십 만료",
+                    artist.getChannelName() + " 멤버십이 만료되었습니다."
+            ));
         }
     }
 }

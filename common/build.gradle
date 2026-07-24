@@ -7,6 +7,15 @@ dependencies {
     api 'org.springframework:spring-web'
     api 'jakarta.validation:jakarta.validation-api'
     api 'io.jsonwebtoken:jjwt-api:0.13.0'
+    api 'org.springframework.kafka:spring-kafka'
+    // Spring Boot 4.1부터 Kafka 자동 설정(KafkaTemplate 빈 생성 등)이 spring-boot-autoconfigure에서
+    // 분리돼 이 모듈로 나갔다(jdbc/hibernate/data-jpa와 동일한 패턴). spring-kafka만 있으면
+    // KafkaTemplate 빈 자체가 안 만들어져 "No qualifying bean" 오류가 난다(실행 중 실제로 확인).
+    api 'org.springframework.boot:spring-boot-kafka'
+    // Spring Kafka의 JsonSerializer는 프로젝트가 쓰는 Jackson 3(tools.jackson)이 아니라
+    // classic Jackson 2.x ObjectMapper를 내부적으로 쓴다. jsr310 모듈이 없으면 LocalDateTime
+    // 필드를 직렬화하다 SerializationException이 난다(실행 중 실제로 확인).
+    runtimeOnly 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
     compileOnly 'jakarta.servlet:jakarta.servlet-api'
     compileOnly 'org.springframework:spring-webmvc'
 
