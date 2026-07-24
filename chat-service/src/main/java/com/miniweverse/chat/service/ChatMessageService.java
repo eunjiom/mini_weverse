@@ -55,10 +55,7 @@ public class ChatMessageService {
         ChatRoom room = getRoom(artistId);
         ChatMessage message = ChatMessage.create(room, fanUserId, Role.FAN, content);
         chatMessageRepository.save(message);
-        // 팬 메시지의 수신자는 방 주인(아티스트) 1명뿐이다.
-        notificationOutboxEventRepository.save(NotificationOutboxEvent.of(
-                NotificationType.NEW_CHAT_MESSAGE, room.getOwnerUserId(), NEW_CHAT_MESSAGE_TITLE, "팬으로부터 메시지가 도착했습니다."
-        ));
+        // 팬 메시지의 수신자는 방 주인(아티스트) 1명뿐인데, 아티스트 대상 알림은 지원하지 않는다.
         return ChatMessageResponse.from(message);
     }
 
