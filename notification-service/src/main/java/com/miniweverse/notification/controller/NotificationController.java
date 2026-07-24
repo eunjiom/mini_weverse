@@ -26,7 +26,7 @@ public class NotificationController {
             @AuthenticationPrincipal Long userId,
             @RequestParam(required = false) Integer limit
     ) {
-        int resolvedLimit = Math.min(limit != null ? limit : DEFAULT_LIMIT, MAX_LIMIT);
+        int resolvedLimit = Math.min(Math.max(limit != null ? limit : DEFAULT_LIMIT, 1), MAX_LIMIT);
         return ResponseEntity.ok(notificationService.getNotifications(userId, resolvedLimit));
     }
 

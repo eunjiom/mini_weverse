@@ -48,14 +48,14 @@ public class NotificationRedisRepository {
         double score = event.occurredAt().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();
         redisTemplate.opsForZSet().add(key, serialize(event), score);
 
-        double cutoff = System.currentTimeMillis() - ttl.toMillis();
-        redisTemplate.opsForZSet().removeRangeByScore(key, Double.NEGATIVE_INFINITY, cutoff);
+        redisTemplate.opsForZSet().removeRangeByScore(key, Double.NEGATIVE_INFINITY, cutoffScore());
         redisTemplate.expire(key, ttl);
     }
 
-    /** 최신순(발생 시각 내림차순) 상위 limit개. */
+    /** 최신순(발생 시각 내림차순) 상위 limit개 — TTL(기본 7일)보다 오래된 항목은 제외한다. */
     public List<NotificationEvent> findRecent(Long userId, int limit) {
-        Set<String> raw = redisTemplate.opsForZSet().reverseRange(notificationKey(userId), 0, limit - 1);
+        Set<String> raw = redisTemplate.opsForZSet()
+                .reverseRangeByScore(notificationKey(userId), cutoffScore(), Double.POSITIVE_INFINITY, 0, limit);
         if (raw == null) {
             return List.of();
         }
@@ -64,9 +64,13 @@ public class NotificationRedisRepository {
 
     public long countUnread(Long userId) {
         Long lastReadAt = getLastReadAt(userId);
-        double lowerBound = lastReadAt != null ? lastReadAt + 1 : Double.NEGATIVE_INFINITY;
+        double lowerBound = Math.max(lastReadAt != null ? lastReadAt + 1 : Double.NEGATIVE_INFINITY, cutoffScore());
         Long count = redisTemplate.opsForZSet().count(notificationKey(userId), lowerBound, Double.POSITIVE_INFINITY);
         return count != null ? count : 0L;
+    }
+
+    private double cutoffScore() {
+        return System.currentTimeMillis() - ttl.toMillis();
     }
 
     public Long getLastReadAt(Long userId) {
