@@ -19,6 +19,11 @@ services:
       - "8081:8081"
     volumes:
       - ./community-service/keys:/app/keys:ro
+    deploy:
+      resources:
+        limits:
+          cpus: "2"
+          memory: 1g
     depends_on:
       postgres:
         condition: service_healthy
@@ -42,6 +47,11 @@ services:
       - "8082:8082"
     volumes:
       - ./chat-service/keys:/app/keys:ro
+    deploy:
+      resources:
+        limits:
+          cpus: "2"
+          memory: 1g
     depends_on:
       postgres:
         condition: service_healthy
@@ -63,6 +73,11 @@ services:
       - "8083:8083"
     volumes:
       - ./notification-service/keys:/app/keys:ro
+    deploy:
+      resources:
+        limits:
+          cpus: "2"
+          memory: 1g
     depends_on:
       redis:
         condition: service_healthy
@@ -83,6 +98,11 @@ services:
       - "8080:8080"
     volumes:
       - ./api-gateway/keys:/app/keys:ro
+    deploy:
+      resources:
+        limits:
+          cpus: "2"
+          memory: 1g
     depends_on:
       - community-service
       - chat-service
