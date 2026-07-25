@@ -28,12 +28,13 @@ jobs:
         run: chmod +x gradlew
 
       - name: Build jars
-        run: ./gradlew :community-service:bootJar :chat-service:bootJar :api-gateway:bootJar
+        run: ./gradlew :community-service:bootJar :chat-service:bootJar :notification-service:bootJar :api-gateway:bootJar
 
       - name: Build Docker images
         run: |
           docker build -t mini-weverse-community:${{ github.sha }} ./community-service
           docker build -t mini-weverse-chat:${{ github.sha }} ./chat-service
+          docker build -t mini-weverse-notification:${{ github.sha }} ./notification-service
           docker build -t mini-weverse-gateway:${{ github.sha }} ./api-gateway
 
       # - name: Configure AWS credentials

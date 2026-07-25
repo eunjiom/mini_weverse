@@ -2,8 +2,8 @@
 #
 # 주의: 브랜치 보호 규칙(Required status checks)에 이 워크플로우를 필수로 걸어두면,
 # 경로 필터에 안 걸려서 워크플로우 자체가 실행되지 않는 PR은 체크가 pending 상태로 남아
-# merge가 막힐 수 있다. 지금은 서비스가 community-service 하나뿐이라 문제없지만,
-# 서비스가 여러 개가 되면 이 부분을 재검토해야 한다.
+# merge가 막힐 수 있다. 서비스가 여러 개(community-service/chat-service/notification-service/api-gateway)라
+# 그중 하나라도 건드리는 PR은 전부 이 워크플로우가 걸리도록 paths를 모듈 전체로 잡는다.
 name: CI
 
 on:
@@ -12,12 +12,18 @@ on:
       - dev
     paths:
       - 'community-service/**'
+      - 'chat-service/**'
+      - 'notification-service/**'
+      - 'api-gateway/**'
       - 'common/**'
   push:
     branches:
       - dev
     paths:
       - 'community-service/**'
+      - 'chat-service/**'
+      - 'notification-service/**'
+      - 'api-gateway/**'
       - 'common/**'
 
 jobs:
