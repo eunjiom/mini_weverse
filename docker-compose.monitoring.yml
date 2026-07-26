@@ -5,6 +5,10 @@ services:
   zipkin:
     image: openzipkin/zipkin:3.6.1
     container_name: mini-weverse-zipkin
+    environment:
+      # Grafana의 GF_SERVER_SERVE_FROM_SUB_PATH에 해당하는 Zipkin 쪽 설정 — UI 정적 리소스가
+      # 이 경로를 기준으로 링크/에셋을 생성하게 한다(zipkin.ui.basepath 프로퍼티, 기본값 /zipkin).
+      ZIPKIN_UI_BASEPATH: /mini-weverse/zipkin
     ports:
       - "9411:9411"
 
