@@ -12,6 +12,11 @@ scrape_configs:
     static_configs:
       - targets: ['chat-service:8082']
 
+  - job_name: notification-service
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ['notification-service:8083']
+
   - job_name: api-gateway
     metrics_path: /actuator/prometheus
     static_configs:
