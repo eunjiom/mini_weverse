@@ -50,7 +50,7 @@ services:
       COMMUNITY_SERVICE_URL: http://community-service:8081
       ZIPKIN_HOST: zipkin
     ports:
-      - "9092:8082"
+      - "9094:8082"
     volumes:
       - ./chat-service/keys:/app/keys:ro
     deploy:
