@@ -97,6 +97,18 @@ export default function () {
     );
     ok = check(createPostRes, { '글 작성 201': (r) => r.status === 201 }) && ok;
 
+    // 8. 채팅 메시지 이력 조회 (게이트웨이+챗 구간 병목 확인용)
+    const chatMessagesRes = http.get(`${BASE_URL}/api/chat/rooms/${ARTIST_ID}/messages`, authHeaders);
+    ok = check(chatMessagesRes, { '채팅 메시지 조회 200': (r) => r.status === 200 }) && ok;
+
+    // 9. 알림 목록 조회 (게이트웨이+알림 구간 병목 확인용)
+    const notificationsRes = http.get(`${BASE_URL}/notifications`, authHeaders);
+    ok = check(notificationsRes, { '알림 목록 조회 200': (r) => r.status === 200 }) && ok;
+
+    // 10. 알림 읽음 처리
+    const notificationsReadRes = http.post(`${BASE_URL}/notifications/read`, null, authHeaders);
+    ok = check(notificationsReadRes, { '알림 읽음 처리 204': (r) => r.status === 204 }) && ok;
+
     failureRate.add(!ok);
     sleep(1);
 }
