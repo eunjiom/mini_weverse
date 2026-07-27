@@ -9,6 +9,10 @@ services:
       # Grafana의 GF_SERVER_SERVE_FROM_SUB_PATH에 해당하는 Zipkin 쪽 설정 — UI 정적 리소스가
       # 이 경로를 기준으로 링크/에셋을 생성하게 한다(zipkin.ui.basepath 프로퍼티, 기본값 /zipkin).
       ZIPKIN_UI_BASEPATH: /mini-weverse/zipkin
+      # 인메모리 스팬 저장소가 힙보다 커지면서 OOM으로 계속 죽는 문제 대응.
+      # 기본 캡(50만 개)보다 낮춰서 잡고, 힙도 명시적으로 넉넉히 준다(서버 전체 15GB 중 10GB 여유 확인함).
+      JAVA_OPTS: "-Xmx3072m"
+      MEM_MAX_SPANS: "300000"
     ports:
       - "9411:9411"
 
