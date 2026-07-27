@@ -21,10 +21,11 @@ public class ChatServiceMembershipNotifier {
     private final RestClient restClient;
 
     public ChatServiceMembershipNotifier(
+            RestClient.Builder restClientBuilder,
             @Value("${chat-service.base-url}") String baseUrl,
             @Value("${internal.service-secret}") String internalServiceSecret
     ) {
-        this.restClient = InternalServiceRestClientFactory.create(baseUrl, internalServiceSecret);
+        this.restClient = InternalServiceRestClientFactory.create(restClientBuilder, baseUrl, internalServiceSecret);
     }
 
     /** @param newPeriodStartedAt 이번 활성화로 새 구독 기간이 열렸으면 그 시작 시각, 그냥 연장이면 null */
