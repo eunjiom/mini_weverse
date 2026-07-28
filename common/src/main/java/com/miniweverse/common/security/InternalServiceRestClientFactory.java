@@ -18,12 +18,17 @@ public final class InternalServiceRestClientFactory {
     private InternalServiceRestClientFactory() {
     }
 
-    public static RestClient create(String baseUrl, String internalServiceSecret) {
+    /**
+     * 스프링이 자동구성한 {@link RestClient.Builder}를 주입받아 사용한다 — 이 빈에는
+     * Micrometer Observation(분산 트레이싱) 계측이 이미 붙어있어서, 직접 {@code RestClient.builder()}로
+     * 새로 만들 때와 달리 이 호출도 Zipkin 트레이스에 잡히고 트레이스 컨텍스트가 상대 서비스로 전파된다.
+     */
+    public static RestClient create(RestClient.Builder builder, String baseUrl, String internalServiceSecret) {
         Assert.hasText(internalServiceSecret, "internal.service-secret must not be blank");
         SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
         requestFactory.setConnectTimeout(CONNECT_TIMEOUT);
         requestFactory.setReadTimeout(READ_TIMEOUT);
-        return RestClient.builder()
+        return builder
                 .baseUrl(baseUrl)
                 .requestFactory(requestFactory)
                 .defaultHeader(InternalServiceAuthFilter.SECRET_HEADER_NAME, internalServiceSecret)

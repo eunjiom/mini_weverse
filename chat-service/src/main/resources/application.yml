@@ -28,6 +28,8 @@ spring:
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
       properties:
         spring.json.add.type.headers: false
+    template:
+      observation-enabled: true
 
 jwt:
   public-key-path: keys/public.pem
@@ -52,4 +54,4 @@ management:
       probability: 1.0
     export:
       zipkin:
-        endpoint: http://${ZIPKIN_HOST:localhost}:9411/api/v2/spans
+        endpoint: http://${ZIPKIN_HOST:zipkin}:9411/api/v2/spans

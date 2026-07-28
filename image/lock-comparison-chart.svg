@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="460" viewBox="0 0 720 460" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif">
+  <rect width="720" height="460" fill="#fcfcfb"/>
+  <text x="24" y="32" font-size="16" font-weight="600" fill="#0b0b0b">동시 멤버십 갱신 — 락 방식별 응답시간 비교 (ms)</text>
+  <text x="24" y="52" font-size="12" fill="#52514e">VU 10, 동일 유저·아티스트 동시 갱신 (k6-concurrent-renewal.js) — 세 방식 모두 500 에러 0건·DB 유실 없음</text>
+
+  <!-- legend -->
+  <rect x="478" y="63" width="10" height="10" rx="2" fill="#cfe0e8"/>
+  <text x="492" y="72" font-size="11" fill="#52514e">평균</text>
+  <rect x="536" y="63" width="10" height="10" rx="2" fill="#7fabc9"/>
+  <text x="550" y="72" font-size="11" fill="#52514e">p95</text>
+  <rect x="588" y="63" width="10" height="10" rx="2" fill="#2f5c80"/>
+  <text x="602" y="72" font-size="11" fill="#52514e">max</text>
+
+  <!-- baseline -->
+  <line x1="60" y1="390" x2="660" y2="390" stroke="#c3c2b7" stroke-width="1"/>
+
+  <!-- winner highlight backing -->
+  <rect x="135" y="92" width="128" height="298" rx="10" fill="#eaf3ee"/>
+  <text x="199" y="86" font-size="12" font-weight="600" fill="#1f6f4a" text-anchor="middle">✓ 가장 빠름 · 추가 인프라 불필요</text>
+
+  <!-- Group 1: 비관적 락 (현재) -->
+  <rect x="145" y="248" width="34" height="142" rx="4" fill="#cfe0e8"/>
+  <text x="162" y="242" font-size="10" fill="#52514e" text-anchor="middle">121</text>
+
+  <rect x="183" y="167" width="34" height="223" rx="4" fill="#7fabc9"/>
+  <text x="200" y="161" font-size="10" fill="#52514e" text-anchor="middle">189</text>
+
+  <rect x="221" y="130" width="34" height="260" rx="4" fill="#2f5c80"/>
+  <text x="238" y="124" font-size="10" fill="#52514e" text-anchor="middle">221</text>
+
+  <text x="200" y="408" font-size="12" font-weight="600" fill="#0b0b0b" text-anchor="middle">비관적 락</text>
+  <text x="200" y="422" font-size="11" fill="#898781" text-anchor="middle">(현재 코드)</text>
+
+  <!-- Group 2: 낙관적 락+재시도 -->
+  <rect x="305" y="229" width="34" height="161" rx="4" fill="#cfe0e8"/>
+  <text x="322" y="223" font-size="10" fill="#898781" text-anchor="middle">137</text>
+
+  <rect x="343" y="155" width="34" height="235" rx="4" fill="#7fabc9"/>
+  <text x="360" y="149" font-size="10" fill="#898781" text-anchor="middle">199</text>
+
+  <rect x="381" y="144" width="34" height="246" rx="4" fill="#2f5c80"/>
+  <text x="398" y="138" font-size="10" fill="#898781" text-anchor="middle">208</text>
+
+  <text x="360" y="408" font-size="12" font-weight="600" fill="#0b0b0b" text-anchor="middle">낙관적 락</text>
+  <text x="360" y="422" font-size="11" fill="#898781" text-anchor="middle">+재시도</text>
+
+  <!-- Group 3: Redis 분산락 -->
+  <rect x="465" y="218" width="34" height="172" rx="4" fill="#cfe0e8"/>
+  <text x="482" y="212" font-size="10" fill="#898781" text-anchor="middle">145</text>
+
+  <rect x="503" y="115" width="34" height="275" rx="4" fill="#7fabc9"/>
+  <text x="520" y="109" font-size="10" fill="#898781" text-anchor="middle">233</text>
+
+  <rect x="541" y="100" width="34" height="290" rx="4" fill="#2f5c80"/>
+  <text x="558" y="94" font-size="10" fill="#898781" text-anchor="middle">246</text>
+
+  <text x="520" y="408" font-size="12" font-weight="600" fill="#0b0b0b" text-anchor="middle">Redis</text>
+  <text x="520" y="422" font-size="11" fill="#898781" text-anchor="middle">분산락</text>
+
+  <text x="24" y="446" font-size="11" fill="#898781">비관적 락 대비 낙관적 락 13%↑ · Redis 분산락 20%↑ (평균 응답시간 기준)</text>
+</svg>

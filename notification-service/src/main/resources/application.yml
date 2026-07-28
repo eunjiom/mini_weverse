@@ -31,6 +31,8 @@ spring:
         spring.json.trusted.packages: com.miniweverse.common.notification
         spring.json.value.default.type: com.miniweverse.common.notification.NotificationEvent
         spring.json.use.type.headers: false
+    listener:
+      observation-enabled: true
 
 jwt:
   public-key-path: keys/public.pem
@@ -49,4 +51,4 @@ management:
       probability: 1.0
     export:
       zipkin:
-        endpoint: http://${ZIPKIN_HOST:localhost}:9411/api/v2/spans
+        endpoint: http://${ZIPKIN_HOST:zipkin}:9411/api/v2/spans

@@ -21,6 +21,9 @@ mini_weverse는 커뮤니티·멤버십·실시간 채팅이 독립된 서비스
 - 서비스별 독립 배포·확장이 가능한 MSA 구조 확립 (공통 모듈은 진짜 중복 코드만 공유)
 - 다중 인스턴스로의 수평 확장(scale-out)을 전제로 한 설계
 
+**설계 규모 가정**
+- 실 서비스 규모는 유저 1만명으로 가정하고 설계/최적화 여부를 판단 (그 이상을 가정한 과설계는 지양)
+
 **주요 타겟 지표**
 - 멤버십 상태 변경 이벤트의 무유실 전달(트랜잭션 아웃박스) 보장
 - 동시 요청 상황에서도 중복 구독 기간·중복 처리 방지 (DB 유니크 제약, 낙관적 락)
@@ -30,14 +33,15 @@ mini_weverse는 커뮤니티·멤버십·실시간 채팅이 독립된 서비스
 | 구분 | 스택 |
 |---|---|
 | 언어/런타임 | Java 21, Spring Boot 4.1.0 |
-| 빌드 | Gradle (멀티모듈: `common`, `community-service`, `chat-service`, `api-gateway`) |
+| 빌드 | Gradle (멀티모듈: `common`, `community-service`, `chat-service`, `api-gateway`, `notification-service`) |
 | API 게이트웨이 | Spring Cloud Gateway (WebFlux, `spring-cloud-starter-gateway-server-webflux`) |
 | 웹/API | Spring Web MVC, Spring Validation |
 | 인증/인가 | Spring Security, JWT (jjwt 0.13.0, RS256 비대칭키), Spring Session + Redis (세션), OAuth2 Client(카카오 로그인) |
 | 채팅 | Spring WebSocket + STOMP, Redis(멤버십 캐시·일일 메시지 카운터), Jsoup(XSS 방지 sanitize) |
+| 알림 | Kafka(KRaft 단일 노드, `notification-events` 토픽), Redis(Sorted Set 기반 알림 저장, TTL 7일) |
 | 데이터 | Spring Data JPA, PostgreSQL, `schema.sql` 기반 부분/유니크 인덱스 |
 | 모니터링 | Zipkin(분산 트레이싱), Prometheus(메트릭 수집), Grafana(시각화), Micrometer |
-| 인프라 | Docker(3개 서비스 전체 컨테이너화), GitHub Actions(CD, 3개 서비스 전체 빌드) |
+| 인프라 | Docker(4개 서비스 전체 컨테이너화), GitHub Actions(CD, 4개 서비스 전체 빌드) |
 
 **스택 선정 이유**
 - **Spring Cloud Gateway (WebFlux)**: 모든 트래픽이 지나는 지점이라 요청마다 스레드를 점유하지 않는 논블로킹 방식이 적합해서 선택
@@ -110,13 +114,14 @@ mini_weverse는 커뮤니티·멤버십·실시간 채팅이 독립된 서비스
 **왜 MSA로 나눴는지**
 - **Chat Service를 별도 서비스로 분리**: 채팅은 트래픽 패턴상 스케일 아웃이 잦을 것으로 예상돼, Community Service와 묶여있으면 채팅 부하 때문에 커뮤니티 기능까지 같이 늘려야 하는 낭비가 생김. 독립시켜서 채팅만 따로 확장 가능하게 함
 - **로그인/인증은 Community Service에 포함**: 별도 인증 서버로 분리할 만큼 부담이 큰 기능이 아니라고 판단해, Community Service 안에 그대로 둠
-- **알림 서버 추가 예정**: 채팅에 대한 알림 기능을 준비 중인데, 채팅서버가 스케일 아웃될수록 알림 발송량도 같이 늘어나는 구조라 이것도 별도 서비스로 분리할 계획
+- **Notification Service를 별도 서비스로 분리**: 채팅서버가 스케일 아웃될수록 알림 발송량도 같이 늘어나는 구조라, 발행 서비스(Community/Chat)와 분리해 독립적으로 확장 가능하게 함. 발행 쪽과는 REST 직접 호출이 아니라 Kafka로만 연결(N:M 디커플링)
 - **다중 서버 구조라 Zipkin 도입**: 서비스가 여러 개로 나뉘면서 요청 하나가 어디서 느려지는지 한 서비스 로그만 봐서는 알 수 없어져서, 분산 트레이싱(Zipkin)으로 병목 지점을 서비스 경계 너머까지 추적
 
 **서비스 간 연결 구조**
-- **infrastructure**: User는 API Gateway로만 접근, Gateway가 Community Service·Chat Service로 라우팅. Community Service ↔ Chat Service는 Gateway를 거치지 않고 Internal API로 직접 통신
-- **infrastructure ↔ 공유 DB**: Community Service는 community DB, Chat Service는 Chat DB를 각자 독립적으로 사용(FK 없음). Redis는 두 서비스가 캐시 용도로 각각 독립적으로 접근(두 DB 사이를 잇는 구조 아님)
-- **infrastructure ↔ monitoring**: API Gateway, Community Service, Chat Service는 각자 독립적으로 자기 트레이스를 Zipkin에 전송(push). 반대로 Prometheus는 이 3개 서비스의 `/actuator/prometheus` 엔드포인트를 하나씩 따로 찾아가 메트릭을 가져옴(pull, 스크레이핑) — 서비스마다 개별로 주고받는 구조라 어느 서비스가 부하 걸렸는지 서비스 단위로 구분 가능
+- **infrastructure**: User는 API Gateway로만 접근, Gateway가 Community Service·Chat Service·Notification Service로 라우팅. Community Service ↔ Chat Service는 Gateway를 거치지 않고 Internal API로 직접 통신
+- **infrastructure ↔ notification**: Community Service·Chat Service는 알림이 발생하면 각자의 아웃박스 테이블에 이벤트를 적재하고, 스케줄러가 5초 주기로 폴링해 Kafka(`notification-events` 토픽)에 발행. Notification Service는 이 토픽만 구독(consume)해 Redis에 저장 — 발행 서비스와 Notification Service는 서로 직접 호출하지 않고 Kafka로만 연결됨
+- **infrastructure ↔ 공유 DB**: Community Service는 community DB, Chat Service는 Chat DB를 각자 독립적으로 사용(FK 없음). Notification Service는 자체 DB 없이 Redis만 사용(알림은 TTL 7일짜리 휘발성 데이터라 영구 저장소 불필요). Redis는 세 서비스가 각각 독립적으로 접근(DB들 사이를 잇는 구조 아님)
+- **infrastructure ↔ monitoring**: API Gateway, Community Service, Chat Service, Notification Service는 각자 독립적으로 자기 트레이스를 Zipkin에 전송(push, Kafka 발행/소비 구간도 계측에 포함되어 트레이스가 끊기지 않음). 반대로 Prometheus는 이 4개 서비스의 `/actuator/prometheus` 엔드포인트를 하나씩 따로 찾아가 메트릭을 가져옴(pull, 스크레이핑) — 서비스마다 개별로 주고받는 구조라 어느 서비스가 부하 걸렸는지 서비스 단위로 구분 가능
 - **monitoring**: Grafana가 Prometheus·Zipkin 양쪽에 조회(query). 메트릭 그래프에서 스파이크가 찍힌 지점(exemplar)을 클릭하면 그 순간의 Zipkin 트레이스로 바로 이동해 원인 확인 가능
 
 ---
@@ -363,21 +368,149 @@ mini_weverse는 커뮤니티·멤버십·실시간 채팅이 독립된 서비스
 
 </details>
 
+### 🔔 2.6 Notification Service
+
+<details>
+<summary>알림 발행 경로 (REST 직접 호출 vs Kafka 이벤트 발행)</summary>
+
+**주요기능 설명**: 멤버십(2.3)과 동일한 트랜잭션 아웃박스로 이벤트를 적재하되, 최종 발행 목적지만 REST 호출이 아니라 Kafka(`notification-events` 단일 토픽, 타입 필드로 팔로우·멤버십·게시글·댓글·채팅 등 6종 이벤트 구분)로 전환. 같은 유저의 알림 순서가 뒤바뀌지 않도록 `targetUserId`를 파티션 키로 사용
+
+**트레이드오프**
+
+| 방식 | 장점 | 단점 |
+|---|---|---|
+| 발행 서비스가 Notification Service를 REST로 직접 호출 | 새 인프라(Kafka) 불필요, 구현 단순 | 발행 서비스가 늘수록(Community/Chat 등) 각자 Notification Service 주소·재시도 로직을 알아야 함(N:1 결합) |
+| **Kafka 이벤트 발행 (선택)** | 발행 서비스는 토픽 하나만 알면 되고, 구독자(소비 서비스)가 늘어나도 발행 쪽은 변경 없음(N:M 디커플링) | Kafka 인프라 추가, 파티션·컨슈머 그룹 등 운영 개념 추가 |
+
+**선택 이유**: 멤버십 아웃박스(2.3) 설계 당시 "발행 소스만 REST에서 브로커로 바꾸면 되도록" 열어둔 구조를, 발행 주체가 Community Service·Chat Service 두 곳으로 늘고 알림 종류도 6종으로 늘어난 시점에 실제로 전환
+
+</details>
+
+<details>
+<summary>아웃박스 로직 위치 (서비스별 개별 구현 vs common 모듈 이관)</summary>
+
+**주요기능 설명**: `NotificationOutboxEvent`/`Repository`/`Publisher`/`Processor`를 Community Service·Chat Service 양쪽에 따로 만들지 않고 `common` 모듈에 하나만 두고 두 서비스가 그대로 사용
+
+**트레이드오프**
+
+| 방식 | 장점 | 단점 |
+|---|---|---|
+| 서비스마다 동일한 아웃박스 클래스를 각자 구현 | 서비스 간 코드 결합 없음 | 완전히 같은 코드(엔티티·리포지토리·발행자·프로세서)가 토씨 하나 안 다르게 중복 |
+| **common 모듈로 이관 (선택)** | 코드 중복 제거, 폴링 주기(5초)·배치 크기(100건) 등 정책 변경 시 한 곳만 수정 | common 의존성이 하나 늘어남(배포 독립성 자체는 안 깨짐 — common은 라이브러리로 끼워지는 것일 뿐) |
+
+**선택 이유**: 내용까지 완전히 동일하게 중복된 코드만 common으로 이관한다는 기존 원칙을 그대로 적용 — 멤버십 아웃박스와 로직이 완전히 같아서 `BaseTimeEntity`와 동일한 이유로 common에 둠. 반대로 도메인 엔티티나 서비스별 에러코드처럼 내용이 실질적으로 다른 것은 계속 각 서비스에 남겨둠
+
+</details>
+
+<details>
+<summary>알림 저장 방식 (DB 영구 저장 vs Redis 휘발성 저장)</summary>
+
+**주요기능 설명**: 유저별 Redis Sorted Set(`notification:{userId}`, score=발생 시각)에 저장. 쓸 때마다 TTL(기본 7일)보다 오래된 항목은 정리하고, 마지막 알림 후 7일간 활동이 없으면 키 자체가 만료되어 사라짐. 읽음 처리는 알림 건별이 아니라 유저당 `lastReadAt` 값 하나만 관리 — 그 이후 도착한 알림은 전부 안읽음으로 계산. 저장 시 발생 시각은 시스템 기본 타임존(`ZoneId.systemDefault()`) 기준으로 epoch millis 변환 — 처음에 UTC로 임의 고정 변환했다가 `lastReadAt`(`System.currentTimeMillis()` 기준) 값과 시차만큼 어긋나 모든 알림이 항상 미래로 계산되어 영원히 안읽음 처리되던 버그를 검증 중 발견해 수정
+
+**트레이드오프**
+
+| 방식 | 장점 | 단점 |
+|---|---|---|
+| PostgreSQL에 알림별 row + read 플래그 저장 | 영구 보관, 알림 건별 읽음 처리 가능 | 알림은 최근 며칠만 의미 있는 휘발성 정보인데 영구 저장소를 쓰는 건 과함, 알림마다 읽음 UPDATE 필요 |
+| **Redis Sorted Set + TTL, lastReadAt 단일값 (선택)** | 알림 성격(최근 N일만 유효)에 맞게 자동 만료, 읽음 처리가 값 하나만 갱신하면 돼서 단순 | 알림 하나만 골라 읽음 처리하는 기능은 불가(전체 unread 개수만 계산) |
+
+**선택 이유**: 이번 프로젝트 범위에서 "알림 개별 읽음 처리" 요구사항이 없고, 알림은 최근 것만 의미 있는 휘발성 데이터라 TTL이 있는 Redis가 더 적합하다고 판단
+
+</details>
+
 ---
 
 ## 🧪 3. 테스트 및 성능 검증
+
+**📌 테스트 사양**
+- 서버 사양: 외부 Ubuntu 24.04.3 LTS, 총 메모리 15GB
+- Docker 컨테이너 기반 / 앱 서비스 4개(community/chat/notification/gateway) 각각 CPU 최대 사용량 2.0, 메모리 최대 사용량 1GB 제한 (인프라·모니터링 컨테이너는 미적용)
+- 관측 도구: k6(클라이언트 응답/처리량) · Zipkin(분산 트레이싱, 샘플링 30%) · Grafana(인프라 자원)
+
+---
+
+### 3.1 부하·병목·인프라 종합 테스트
+
+**📌 테스트 구성**
+- 테스트 도구: k6, Zipkin, Grafana
+- 테스트 시나리오: 회원가입→로그인→탐색→팔로우→구독→글쓰기 6단계 반복, VU 0→50(30s)→50유지(60s)→50→100(30s)→100유지(60s)→100→0(30s), 총 3분 30초
+- 테스트 목표: 처리량/응답시간 프로파일 확인 + 병목 구간 특정 + 자원 사용률(CPU/메모리) 확인
+- 성공 기준: p(95)<1000ms, 실패율<5%
+
+**테스트 결과**
+
+| 테스트 항목 | 30VU | 100VU (4회 재현) |
+|---|---|---|
+| p(95) | 484ms | 2.59~3.02s |
+| 실패율 | 0% | 0% |
+| 판정 | ✅ 통과 | ❌ 임계값(1s) 초과 |
+
+![100VU 엔드포인트별 응답시간](image/bcrypt-bottleneck-chart.svg)
+
+![Grafana CPU/로드/스레드](image/모니터링2.png)
+
+**📌 설명**
+- signup/login만 다른 구간보다 6~10배 느림 — 나머지는 100VU에서도 전부 1초 안쪽
+- Zipkin: `secured request` 구간이 자식 span 없이 순수 연산시간(전체의 99%+)으로 확인 — DB/네트워크 대기가 아니라 BCrypt 해싱 자체의 CPU 비용
+- Grafana: CPU 100% 포화, 로드평균 30.7(2코어 기준 15배), 메모리/GC/스레드는 전부 정상 — k6·Zipkin·Grafana 3중으로 CPU 병목 확정
+
+**결론**: BCrypt 해싱 CPU 병목 확정, **수정하지 않기로 결정** — CPU 2코어 제한은 테스트용이지 실제 배포 스펙이 아니고, BCrypt가 느린 건 무차별 대입 공격을 막기 위한 의도된 설계. 유저 1만명 규모에서 100명 동시 가입/로그인은 현실적으로 드묾
+
+---
+
+### 3.2 동시 멤버십 갱신 — 락 방식 비교 테스트
+
+**📌 테스트 구성**
+- 테스트 도구: k6(`k6-concurrent-renewal.js`)
+- 테스트 시나리오: 이미 구독 중인 유저 1명에게 동일 아티스트 갱신 요청을 VU 10개가 동시 전송. 비관적 락(현재 코드)·낙관적 락+재시도·Redis 분산락 3방식을 코드만 바꿔가며 동일 시나리오로 비교
+- 테스트 목표: Lost Update 방지 확인 + 방식별 처리량 비교
+- 성공 기준: 500 에러 0건(`renewal_server_errors rate==0`)
+
+![락 방식별 응답시간 비교](image/lock-comparison-chart.svg)
+
+**📌 설명**
+- 세 방식 모두 500 에러 0건, DB(`expires_at`)로 11개월치 연장이 전부 반영돼 유실 없음까지 확인
+- 비관적 락 대비 낙관적 락은 **13% 느림** — 버전 충돌로 실패한 요청이 재시도되며 응답시간 증가
+- 비관적 락 대비 Redis 분산락은 **20% 느림** — DB 라운드트립 대신 Redis 왕복(setIfAbsent+delete) 2회가 추가돼 네트워크 홉 증가
+
+**결론**: **비관적 락 유지** — 세 방식 중 가장 빠르고 추가 인프라(Redis)도 불필요. 이슈#11에서 "구현 복잡도" 근거로 낙관적 락을 기각했던 결정에 "성능" 근거까지 실측으로 추가 확보
+
+---
+
+### 3.3 아웃박스 발행 지연 측정
+
+**📌 테스트 구성**
+- 테스트 도구: k6(`k6-chat-to-notification.js`, 2초 간격 폴링·최대 20초) + Zipkin
+- 테스트 시나리오: 팬 회원가입→로그인→구독→아티스트 방송 메시지 수신까지, 아웃박스→Kafka→Redis 저장 전 구간의 실제 지연 측정
+- 테스트 목표: 폴링 주기(5초) 기준 예상 지연(5초+α) 검증
+
+**테스트 결과**
+
+| 상황 | 지연 |
+|---|---|
+| 백로그 없음 | 7034ms |
+| 소형 백로그(5건) | 약 32분 |
+| 대형 백로그(24,221건) | 20초 테스트 창 초과 |
+
+![알림이 실제로 처리된 순간](image/알림이%20실제로%20처리된%20순간.png)
+
+**📌 설명**
+- 백로그 없을 때는 가설(5초 폴링+α)과 일치
+- 아웃박스 발행자가 ID 순차 처리(FIFO, 5초마다 100건) 구조라, 앞에 밀린 PENDING이 있으면 새 이벤트가 그만큼 뒤로 밀림
+- 대규모 트래픽(한 아티스트에 이미 다수의 팬이 구독 중인 상황)을 가정해 fan-out 지연을 측정 — 구독자 2만명대 규모에서 지연이 20초 이상 벌어지는 것을 실측으로 확인
+
+**결론**: 아웃박스+Kafka 설계 자체는 의도대로 정상 동작. 다만 FIFO 순차 처리 구조상 대규모 fan-out(구독자 2만명대) 상황에서는 지연이 커질 수 있음을 실측으로 확인 — 이 규모는 "1. 프로젝트 개요"의 설계 규모 가정(유저 1만명)을 넘어서는 수치라, BCrypt 병목과 동일한 기준으로 지금 당장은 조치하지 않기로 결정 (→ "4. 프로젝트 한계점" 참고)
 
 ---
 
 ## 🚧 4. 프로젝트 한계점 및 개선 방향
 
 **한계점**
-- 부하테스트 미실시 — 실제 병목 지점이 어디인지, 스케일아웃이 필요한 트래픽 수준이 어느 정도인지 측정된 데이터 없음
+- BCrypt 해싱 CPU 병목 — 100VU 동시 회원가입/로그인 시 p95 2.6~3.0초로 임계값(1초) 초과(실측, 3장 참고). 현재 스펙 기준으로는 미조치로 결정
+- 알림 fan-out 지연 — 대규모 fan-out(구독자 2만명대) 상황에서 아웃박스 FIFO 처리 특성상 지연이 커질 수 있음(실측, 3장 참고). 설계 규모 가정(유저 1만명)을 넘어서는 수치라 BCrypt 병목과 동일한 기준으로 현재 스펙에서는 미조치로 결정
 
 **개선 방향**
 - **API Gateway에 Eureka(서비스 디스커버리) 도입 예정**: 지금은 각 서비스 주소를 게이트웨이 설정에 직접 매핑해두는 구조라, 스케일 아웃할 때마다(인스턴스가 늘 때마다) 주소를 수동으로 관리해야 함. Eureka를 붙이면 인스턴스가 늘어나도 자동으로 등록/탐색되게 할 계획
-- **알림 서버 추가 예정**: 채팅에 대한 알림을 별도 서비스로 분리 — 채팅서버가 스케일 아웃되는 만큼 알림 발송량도 같이 늘어나는 구조라, 채팅 서버 확장과 독립적으로 알림만 따로 확장 가능하게 할 계획
-- **알림 fan-out 비동기화 검토 중**: 아티스트 방송/새 글 알림이 지금은 구독자·팔로워 전체를 한 트랜잭션 안에서 동기로 outbox에 적재하는 구조. 유저 1만명 규모에서는 아직 문제없지만, 트랜잭션이 실제로 느려지면 페이지 단위 비동기 워커로 분리할 계획
 
 ---
 

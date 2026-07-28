@@ -5,6 +5,14 @@ services:
   zipkin:
     image: openzipkin/zipkin:3.6.1
     container_name: mini-weverse-zipkin
+    environment:
+      # Grafana의 GF_SERVER_SERVE_FROM_SUB_PATH에 해당하는 Zipkin 쪽 설정 — UI 정적 리소스가
+      # 이 경로를 기준으로 링크/에셋을 생성하게 한다(zipkin.ui.basepath 프로퍼티, 기본값 /zipkin).
+      ZIPKIN_UI_BASEPATH: /mini-weverse/zipkin
+      # 인메모리 스팬 저장소가 힙보다 커지면서 OOM으로 계속 죽는 문제 대응.
+      # 기본 캡(50만 개)보다 낮춰서 잡고, 힙도 명시적으로 넉넉히 준다(서버 전체 15GB 중 10GB 여유 확인함).
+      JAVA_OPTS: "-Xmx3072m"
+      MEM_MAX_SPANS: "300000"
     ports:
       - "9411:9411"
 
@@ -25,7 +33,7 @@ services:
       - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus-data:/prometheus
     ports:
-      - "9090:9090"
+      - "9095:9090"
 
   grafana:
     image: grafana/grafana:13.0.1
@@ -33,6 +41,8 @@ services:
     environment:
       # 로컬 개발 기본값. 실제 배포 시엔 반드시 환경변수로 덮어써야 한다.
       GF_SECURITY_ADMIN_PASSWORD: ${GF_SECURITY_ADMIN_PASSWORD:-admin}
+      GF_SERVER_ROOT_URL: https://ndolphin.com/mini-weverse/grafana/
+      GF_SERVER_SERVE_FROM_SUB_PATH: "true"
     volumes:
       - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
       - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro

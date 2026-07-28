@@ -22,10 +22,11 @@ public class MembershipClient {
     private final RestClient restClient;
 
     public MembershipClient(
+            RestClient.Builder restClientBuilder,
             @Value("${community-service.base-url}") String baseUrl,
             @Value("${internal.service-secret}") String internalServiceSecret
     ) {
-        this.restClient = InternalServiceRestClientFactory.create(baseUrl, internalServiceSecret);
+        this.restClient = InternalServiceRestClientFactory.create(restClientBuilder, baseUrl, internalServiceSecret);
     }
 
     /**
