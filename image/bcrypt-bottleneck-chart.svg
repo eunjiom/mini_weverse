@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="420" viewBox="0 0 720 420" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif">
+  <rect width="720" height="420" fill="#fcfcfb"/>
+  <text x="24" y="32" font-size="16" font-weight="600" fill="#0b0b0b">100VU 부하 시 엔드포인트별 응답시간 (p95, ms)</text>
+  <text x="24" y="52" font-size="12" fill="#52514e">signup/login만 BCrypt 연산으로 CPU를 점유하며 다른 구간보다 6~10배 느려짐 (run4, n=2,621)</text>
+
+  <!-- baseline -->
+  <line x1="220" y1="72" x2="220" y2="392" stroke="#c3c2b7" stroke-width="1"/>
+
+  <!-- bars: order desc, scale max 3712.4 -> maxwidth 460 -->
+  <!-- row height 32, gap accounted -->
+
+  <!-- /signup 3712.4 -->
+  <text x="212" y="90" font-size="12" fill="#0b0b0b" text-anchor="end">/signup</text>
+  <rect x="220" y="80" width="460" height="18" rx="4" fill="#d03b3b"/>
+  <text x="686" y="94" font-size="12" font-weight="600" fill="#d03b3b">3712ms</text>
+
+  <!-- /login 3687.8 -->
+  <text x="212" y="122" font-size="12" fill="#0b0b0b" text-anchor="end">/login</text>
+  <rect x="220" y="112" width="457" height="18" rx="4" fill="#d03b3b"/>
+  <text x="683" y="126" font-size="12" font-weight="600" fill="#d03b3b">3688ms</text>
+
+  <!-- /memberships 374.3 -->
+  <text x="212" y="154" font-size="12" fill="#52514e" text-anchor="end">/memberships</text>
+  <rect x="220" y="144" width="46" height="18" rx="4" fill="#c3c2b7"/>
+  <text x="272" y="158" font-size="11" fill="#898781">374ms</text>
+
+  <!-- /artists/1/posts 337.3 -->
+  <text x="212" y="186" font-size="12" fill="#52514e" text-anchor="end">글 작성</text>
+  <rect x="220" y="176" width="42" height="18" rx="4" fill="#c3c2b7"/>
+  <text x="268" y="190" font-size="11" fill="#898781">337ms</text>
+
+  <!-- 게시글 목록 조회 306.5 -->
+  <text x="212" y="218" font-size="12" fill="#52514e" text-anchor="end">게시글 목록 조회</text>
+  <rect x="220" y="208" width="38" height="18" rx="4" fill="#c3c2b7"/>
+  <text x="264" y="222" font-size="11" fill="#898781">307ms</text>
+
+  <!-- /follows 291.2 -->
+  <text x="212" y="250" font-size="12" fill="#52514e" text-anchor="end">/follows</text>
+  <rect x="220" y="240" width="36" height="18" rx="4" fill="#c3c2b7"/>
+  <text x="262" y="254" font-size="11" fill="#898781">291ms</text>
+
+  <!-- 아티스트 검색 230.5 -->
+  <text x="212" y="282" font-size="12" fill="#52514e" text-anchor="end">아티스트 검색</text>
+  <rect x="220" y="272" width="29" height="18" rx="4" fill="#c3c2b7"/>
+  <text x="255" y="286" font-size="11" fill="#898781">231ms</text>
+
+  <!-- 채팅 메시지 조회 113.6 -->
+  <text x="212" y="314" font-size="12" fill="#52514e" text-anchor="end">채팅 메시지 조회</text>
+  <rect x="220" y="304" width="15" height="18" rx="4" fill="#c3c2b7"/>
+  <text x="241" y="318" font-size="11" fill="#898781">114ms</text>
+
+  <!-- 알림 목록 조회 9.9 -->
+  <text x="212" y="346" font-size="12" fill="#52514e" text-anchor="end">알림 목록 조회</text>
+  <rect x="220" y="336" width="4" height="18" rx="2" fill="#c3c2b7"/>
+  <text x="230" y="350" font-size="11" fill="#898781">10ms</text>
+
+  <!-- 알림 읽음 처리 8.4 -->
+  <text x="212" y="378" font-size="12" fill="#52514e" text-anchor="end">알림 읽음 처리</text>
+  <rect x="220" y="368" width="4" height="18" rx="2" fill="#c3c2b7"/>
+  <text x="230" y="382" font-size="11" fill="#898781">8ms</text>
+
+  <text x="24" y="410" font-size="11" fill="#898781">빨강 = BCrypt 병목 확정 구간 · 회색 = 정상 범위 (전부 1초 이내)</text>
+</svg>
