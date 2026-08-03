@@ -18,6 +18,9 @@ dependencies {
     runtimeOnly 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
     compileOnly 'jakarta.servlet:jakarta.servlet-api'
     compileOnly 'org.springframework:spring-webmvc'
+    // OpenApiCustomizer 등 스웨거 문서 커스터마이징 타입만 컴파일 시점에 필요 — 런타임
+    // 구현체는 이 클래스를 실제로 쓰는 서비스가 자기 springdoc 의존성으로 제공한다.
+    compileOnly 'org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.1'
 
     testRuntimeOnly 'io.jsonwebtoken:jjwt-impl:0.13.0'
     testRuntimeOnly 'io.jsonwebtoken:jjwt-jackson:0.13.0'
