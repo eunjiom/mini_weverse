@@ -4,6 +4,9 @@ import com.miniweverse.auth.service.AuthService;
 import com.miniweverse.user.dto.UserProfileResponse;
 import com.miniweverse.user.dto.WithdrawRequest;
 import com.miniweverse.user.service.UserService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -14,6 +17,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
+@Tag(name = "유저", description = "유저 프로필 조회 및 회원 탈퇴")
+@SecurityRequirement(name = "bearerAuth")
 public class UserController {
 
     private final UserService userService;
@@ -24,6 +29,7 @@ public class UserController {
         this.authService = authService;
     }
 
+    @Operation(summary = "유저 프로필 조회")
     @GetMapping("/users/{userId}")
     public ResponseEntity<UserProfileResponse> getProfile(
             @AuthenticationPrincipal Long viewerId,
@@ -32,6 +38,7 @@ public class UserController {
         return ResponseEntity.ok(userService.getProfile(viewerId, userId));
     }
 
+    @Operation(summary = "회원 탈퇴", description = "본인 계정을 탈퇴 처리합니다.")
     @DeleteMapping("/users/me")
     public ResponseEntity<Void> withdraw(
             @AuthenticationPrincipal Long userId,

@@ -4,6 +4,7 @@ import com.miniweverse.chat.dto.ChatMessageResponse;
 import com.miniweverse.chat.service.ChatMessageService;
 import com.miniweverse.common.response.CursorPageResponse;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -18,6 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 @Tag(name = "채팅방")
 @RestController
 @Validated
+@SecurityRequirement(name = "bearerAuth")
 public class ChatRoomController {
 
     private final ChatMessageService chatMessageService;

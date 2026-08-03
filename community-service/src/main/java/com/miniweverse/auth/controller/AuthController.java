@@ -7,6 +7,8 @@ import com.miniweverse.auth.dto.TokenResponse;
 import com.miniweverse.auth.service.AuthService;
 import com.miniweverse.auth.service.LoginResult;
 import com.miniweverse.user.entity.User;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
@@ -27,6 +29,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
+@Tag(name = "인증", description = "회원가입, 로그인, 토큰 재발급, 로그아웃")
 public class AuthController {
 
     private final AuthService authService;
@@ -35,6 +38,7 @@ public class AuthController {
         this.authService = authService;
     }
 
+    @Operation(summary = "회원가입", description = "이메일/비밀번호로 신규 계정을 생성합니다.")
     @PostMapping("/signup")
     public ResponseEntity<SignupResponse> signup(@Valid @RequestBody SignupRequest request) {
         User user = authService.signup(request);
@@ -42,6 +46,7 @@ public class AuthController {
                 .body(new SignupResponse(user.getId(), user.getNickname()));
     }
 
+    @Operation(summary = "로그인", description = "이메일/비밀번호로 로그인합니다. 일반 유저는 JWT 액세스/리프레시 토큰을 쿠키와 Authorization 헤더로 내려받고, 관리자 계정은 세션 기반 인증으로 처리됩니다.")
     @PostMapping("/login")
     public ResponseEntity<?> login(@Valid @RequestBody LoginRequest request, HttpServletRequest httpRequest) {
         LoginResult result = authService.login(request.email(), request.password());
@@ -58,6 +63,7 @@ public class AuthController {
         return ResponseEntity.ok().build();
     }
 
+    @Operation(summary = "액세스 토큰 재발급", description = "쿠키에 담긴 리프레시 토큰으로 새 액세스/리프레시 토큰을 발급합니다.")
     @PostMapping("/reissue")
     public ResponseEntity<TokenResponse> reissue(
             @CookieValue(name = "refreshToken", required = false) String refreshToken
@@ -70,6 +76,7 @@ public class AuthController {
                 .body(new TokenResponse(result.accessToken()));
     }
 
+    @Operation(summary = "로그아웃", description = "관리자는 세션을, 일반 유저는 리프레시 토큰을 무효화하고 인증 쿠키를 만료시킵니다.")
     @PostMapping("/logout")
     public ResponseEntity<Void> logout(
             @CookieValue(name = "refreshToken", required = false) String refreshToken,
