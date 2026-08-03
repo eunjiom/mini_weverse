@@ -6,6 +6,9 @@ import com.miniweverse.post.dto.CommentResponse;
 import com.miniweverse.post.dto.CommentUpdateRequest;
 import com.miniweverse.post.entity.Comment;
 import com.miniweverse.post.service.CommentService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -24,6 +27,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @Validated
+@Tag(name = "댓글", description = "게시글 댓글 작성, 조회, 수정, 삭제")
 public class CommentController {
 
     private final CommentService commentService;
@@ -32,6 +36,8 @@ public class CommentController {
         this.commentService = commentService;
     }
 
+    @Operation(summary = "댓글 작성")
+    @SecurityRequirement(name = "bearerAuth")
     @PostMapping("/posts/{postId}/comments")
     public ResponseEntity<CommentResponse> create(
             @AuthenticationPrincipal Long authorId,
@@ -42,6 +48,7 @@ public class CommentController {
         return ResponseEntity.status(HttpStatus.CREATED).body(CommentResponse.from(comment));
     }
 
+    @Operation(summary = "게시글 댓글 목록 조회", description = "특정 게시글의 댓글을 커서 기반 페이지네이션으로 조회합니다.")
     @GetMapping("/posts/{postId}/comments")
     public ResponseEntity<CursorPageResponse<CommentResponse>> list(
             @AuthenticationPrincipal Long viewerId,
@@ -52,6 +59,8 @@ public class CommentController {
         return ResponseEntity.ok(commentService.getByPost(viewerId, postId, cursor, size));
     }
 
+    @Operation(summary = "특정 유저 작성 댓글 목록 조회", description = "특정 유저가 작성한 댓글을 커서 기반 페이지네이션으로 조회합니다.")
+    @SecurityRequirement(name = "bearerAuth")
     @GetMapping("/users/{userId}/comments")
     public ResponseEntity<CursorPageResponse<CommentResponse>> listByAuthor(
             @AuthenticationPrincipal Long viewerId,
@@ -62,6 +71,8 @@ public class CommentController {
         return ResponseEntity.ok(commentService.getByAuthor(viewerId, userId, cursor, size));
     }
 
+    @Operation(summary = "댓글 수정", description = "작성자 본인만 댓글 내용을 수정할 수 있습니다.")
+    @SecurityRequirement(name = "bearerAuth")
     @PatchMapping("/comments/{commentId}")
     public ResponseEntity<CommentResponse> update(
             @AuthenticationPrincipal Long requesterId,
@@ -72,6 +83,8 @@ public class CommentController {
         return ResponseEntity.ok(CommentResponse.from(comment));
     }
 
+    @Operation(summary = "댓글 삭제", description = "작성자 본인만 댓글을 삭제할 수 있습니다.")
+    @SecurityRequirement(name = "bearerAuth")
     @DeleteMapping("/comments/{commentId}")
     public ResponseEntity<Void> delete(
             @AuthenticationPrincipal Long requesterId,
