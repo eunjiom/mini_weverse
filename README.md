@@ -547,3 +547,4 @@ mini_weverse는 커뮤니티·멤버십·실시간 채팅이 독립된 서비스
 ## 🔗 외부 문서
 
 - 노션: https://app.notion.com/p/Mini_weverse-3a5ed78be0878023becbfa96780b639e?source=copy_link
+- Swagger: https://ndolphin.com/mini-weverse/swagger-ui/index.html
