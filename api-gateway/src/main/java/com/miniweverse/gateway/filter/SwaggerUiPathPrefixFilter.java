@@ -7,6 +7,7 @@ import org.reactivestreams.Publisher;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.core.io.buffer.DataBufferUtils;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.http.server.reactive.ServerHttpResponseDecorator;
 import org.springframework.stereotype.Component;
@@ -60,6 +61,11 @@ public class SwaggerUiPathPrefixFilter implements WebFilter {
 
         @Override
         public Mono<Void> writeWith(Publisher<? extends DataBuffer> body) {
+            String contentEncoding = getDelegate().getHeaders().getFirst(HttpHeaders.CONTENT_ENCODING);
+            if (contentEncoding != null && !contentEncoding.equalsIgnoreCase("identity")) {
+                // 압축된 바이트를 UTF-8 텍스트로 잘못 해석해 깨뜨리지 않도록, 압축 응답은 그대로 통과시킨다.
+                return super.writeWith(body);
+            }
             return super.writeWith(DataBufferUtils.join(Flux.from(body)).map(this::patch));
         }
 
