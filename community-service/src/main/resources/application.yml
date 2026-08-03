@@ -53,6 +53,16 @@ spring:
             user-info-uri: https://kapi.kakao.com/v2/user/me
             user-name-attribute: id
 
+springdoc:
+  swagger-ui:
+    urls:
+      - name: community-service
+        url: /docs/community/v3/api-docs
+      - name: chat-service
+        url: /docs/chat/v3/api-docs
+      - name: notification-service
+        url: /docs/notification/v3/api-docs
+
 jwt:
   private-key-path: keys/private.pem
   public-key-path: keys/public.pem
