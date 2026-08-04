@@ -1,7 +1,10 @@
 # 이 워크플로우는 현재 Docker 이미지 빌드까지만 실행합니다.
 # 실제 배포 시 아래 ECR push / ECS 배포 단계의 주석을 해제하고
 # AWS 크리덴셜(AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY 등 secrets)과
-# ECR 리포지토리 / ECS 클러스터·서비스 설정을 먼저 준비해야 합니다.
+# ECR 리포지토리 4개(community/chat/notification/gateway) · ECS Fargate
+# 클러스터(mini-weverse-cluster) · 서비스 4개 · 태스크 정의 4개를 먼저
+# 준비해야 합니다. 전환 시점 기준은 README 4장 참고(AWS 전환 + 아웃박스
+# 발행자 스케일아웃).
 name: CD
 
 on:
@@ -48,14 +51,41 @@ jobs:
       #   id: login-ecr
       #   uses: aws-actions/amazon-ecr-login@v2
       #
-      # - name: Push image to ECR
+      # # 서비스 4개를 각자의 ECR 리포지토리로 push. 리포지토리는 로컬 이미지 태그명과
+      # # 동일하게(mini-weverse-community 등) 미리 생성해둔다는 전제.
+      # - name: Push images to ECR
       #   run: |
-      #     docker tag mini-weverse:${{ github.sha }} ${{ steps.login-ecr.outputs.registry }}/mini-weverse:${{ github.sha }}
-      #     docker push ${{ steps.login-ecr.outputs.registry }}/mini-weverse:${{ github.sha }}
+      #     for service in community chat notification gateway; do
+      #       docker tag mini-weverse-$service:${{ github.sha }} ${{ steps.login-ecr.outputs.registry }}/mini-weverse-$service:${{ github.sha }}
+      #       docker push ${{ steps.login-ecr.outputs.registry }}/mini-weverse-$service:${{ github.sha }}
+      #     done
       #
-      # - name: Deploy to ECS
+      # # ECS Fargate 서비스 4개를 같은 클러스터(mini-weverse-cluster) 안에서 각자 배포.
+      # # 태스크 정의 파일(ecs/*-task-definition.json)은 서비스별로 미리 준비해둔다.
+      # - name: Deploy community-service to ECS
       #   uses: aws-actions/amazon-ecs-deploy-task-definition@v2
       #   with:
-      #     task-definition: task-definition.json
-      #     service: mini-weverse-service
+      #     task-definition: ecs/community-service-task-definition.json
+      #     service: mini-weverse-community-service
+      #     cluster: mini-weverse-cluster
+      #
+      # - name: Deploy chat-service to ECS
+      #   uses: aws-actions/amazon-ecs-deploy-task-definition@v2
+      #   with:
+      #     task-definition: ecs/chat-service-task-definition.json
+      #     service: mini-weverse-chat-service
+      #     cluster: mini-weverse-cluster
+      #
+      # - name: Deploy notification-service to ECS
+      #   uses: aws-actions/amazon-ecs-deploy-task-definition@v2
+      #   with:
+      #     task-definition: ecs/notification-service-task-definition.json
+      #     service: mini-weverse-notification-service
+      #     cluster: mini-weverse-cluster
+      #
+      # - name: Deploy api-gateway to ECS
+      #   uses: aws-actions/amazon-ecs-deploy-task-definition@v2
+      #   with:
+      #     task-definition: ecs/api-gateway-task-definition.json
+      #     service: mini-weverse-gateway
       #     cluster: mini-weverse-cluster
