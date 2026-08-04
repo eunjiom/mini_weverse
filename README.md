@@ -37,7 +37,7 @@ mini_weverse는 커뮤니티·멤버십·실시간 채팅이 독립된 서비스
 | API 게이트웨이 | Spring Cloud Gateway (WebFlux, `spring-cloud-starter-gateway-server-webflux`) |
 | 웹/API | Spring Web MVC, Spring Validation |
 | 인증/인가 | Spring Security, JWT (jjwt 0.13.0, RS256 비대칭키), Spring Session + Redis (세션), OAuth2 Client(카카오 로그인) |
-| 채팅 | Spring WebSocket + STOMP, Redis(멤버십 캐시·일일 메시지 카운터), Jsoup(XSS 방지 sanitize) |
+| 채팅 | Spring WebSocket + STOMP, Redis(멤버십 캐시·일일 메시지 카운터·Pub/Sub 기반 인스턴스 간 브로드캐스트 중계), Jsoup(XSS 방지 sanitize) |
 | 알림 | Kafka(KRaft 단일 노드, `notification-events` 토픽), Redis(Sorted Set 기반 알림 저장, TTL 7일) |
 | 데이터 | Spring Data JPA, PostgreSQL, `schema.sql` 기반 부분/유니크 인덱스 |
 | 모니터링 | Zipkin(분산 트레이싱), Prometheus(메트릭 수집), Grafana(시각화), Micrometer |
@@ -315,6 +315,23 @@ mini_weverse는 커뮤니티·멤버십·실시간 채팅이 독립된 서비스
 | **바로 저장 시도 + 실패 캐치 + DB 유니크 인덱스 (선택)** | 동시 요청에도 DB가 최종 방어선이 되어 중복이 원천 차단됨 | 제약 위반 예외를 의미있는 처리로 변환하는 코드 추가 필요 |
 
 **선택 이유**: 애플리케이션 로직만으로는 동시 요청 경합을 완전히 막을 수 없어서, DB의 부분 유니크 인덱스(같은 팬-아티스트 조합에 "열린" 기간은 하나만)를 실질적인 최종 방어선으로 둠
+
+</details>
+
+<details>
+<summary>STOMP 브로드캐스트의 인스턴스 간 전달 (로컬 브로커 vs Redis Pub/Sub 중계)</summary>
+
+**주요기능 설명**: `enableSimpleBroker`는 인스턴스별 인메모리 브로커라, chat-service를 다중 인스턴스로 띄우면 아티스트가 붙은 인스턴스와 팬이 붙은 인스턴스가 다를 경우 메시지가 전달되지 않음. `SimpMessagingTemplate`을 직접 호출하는 대신 `ChatBroadcastPublisher`가 Redis 채널(`chat:broadcast`)로 먼저 발행하고, 모든 인스턴스의 `ChatBroadcastSubscriber`가 이를 구독해 각자 로컬 세션에 재전달(대상이 그 인스턴스에 없으면 스프링이 조용히 무시)
+
+**트레이드오프**
+
+| 방식 | 장점 | 단점 |
+|---|---|---|
+| 로컬 심플 브로커만 사용 | 구현 단순, 추가 인프라 불필요 | 다중 인스턴스에서 인스턴스 경계를 넘는 전달이 원천적으로 불가능 |
+| STOMP 브로커 릴레이(RabbitMQ 등 외부 브로커로 교체) | 스프링이 릴레이 자체를 표준 지원 | 이미 쓰던 Redis 대신 새 메시지 브로커 인프라를 추가로 들여야 함 |
+| **Redis Pub/Sub 중계 (선택)** | 이미 쓰고 있는 Redis 인프라만으로 해결(새 인프라 불필요), 멤버십 캐시·일일 카운터와 동일한 방식 | Redis 장애 시 브로드캐스트 자체가 안 되는 단일 장애점이 생김(단, 이미 채팅 자격 검증도 Redis에 의존 중이라 새로운 의존성은 아님) |
+
+**선택 이유**: 멤버십 캐시(`MembershipCache`)·일일 메시지 카운터(`FanMessageDailyQuota`)가 이미 같은 이유(인스턴스 간 상태 공유)로 Redis를 쓰고 있어서, 새 브로커 인프라를 추가하기보다 같은 Redis에 Pub/Sub 채널만 얹는 쪽을 선택. 브로드캐스트 발행 실패는 메시지가 이미 DB에 저장된 뒤의 부가 경로라, `MembershipCache`와 동일하게 실패를 흡수하고 로그만 남김(요청 자체를 실패시키지 않음). 로컬에서 chat-service 2인스턴스를 직접 띄워 인스턴스 간 교차 전달을 실측으로 검증함
 
 </details>
 
