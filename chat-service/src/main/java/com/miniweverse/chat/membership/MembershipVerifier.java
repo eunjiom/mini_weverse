@@ -1,34 +1,28 @@
 package com.miniweverse.chat.membership;
 
+import com.miniweverse.chat.broadcast.ChatBroadcastPublisher;
 import java.time.LocalDateTime;
-import org.springframework.context.annotation.Lazy;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Component;
 
-/**
- * ChatChannelInterceptor(SimpMessagingTemplate을 만드는 WebSocket 브로커 설정 자체가 의존하는
- * 빈)가 이 클래스를 참조하므로, SimpMessagingTemplate을 즉시(eager) 주입하면 순환 참조가 생긴다.
- * {@code @Lazy}로 실제 사용 시점까지 해석을 미뤄 순환을 끊는다.
- */
 @Component
 public class MembershipVerifier {
 
     private final MembershipClient membershipClient;
     private final MembershipCache membershipCache;
     private final MembershipPeriodRepository membershipPeriodRepository;
-    private final SimpMessagingTemplate messagingTemplate;
+    private final ChatBroadcastPublisher broadcastPublisher;
 
     public MembershipVerifier(
             MembershipClient membershipClient,
             MembershipCache membershipCache,
             MembershipPeriodRepository membershipPeriodRepository,
-            @Lazy SimpMessagingTemplate messagingTemplate
+            ChatBroadcastPublisher broadcastPublisher
     ) {
         this.membershipClient = membershipClient;
         this.membershipCache = membershipCache;
         this.membershipPeriodRepository = membershipPeriodRepository;
-        this.messagingTemplate = messagingTemplate;
+        this.broadcastPublisher = broadcastPublisher;
     }
 
     /**
@@ -85,7 +79,7 @@ public class MembershipVerifier {
                         membershipPeriodRepository.save(period);
                     });
         }
-        messagingTemplate.convertAndSendToUser(
+        broadcastPublisher.toUser(
                 String.valueOf(fanUserId),
                 "/queue/rooms/" + artistId + "/notice",
                 MembershipExpiredNotice.of(artistId)
