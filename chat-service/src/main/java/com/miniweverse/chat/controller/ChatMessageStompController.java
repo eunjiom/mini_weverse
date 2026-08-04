@@ -1,5 +1,6 @@
 package com.miniweverse.chat.controller;
 
+import com.miniweverse.chat.broadcast.ChatBroadcastPublisher;
 import com.miniweverse.chat.dto.ChatMessageResponse;
 import com.miniweverse.chat.dto.ChatMessageSendRequest;
 import com.miniweverse.chat.repository.ChatRoomRepository;
@@ -11,7 +12,6 @@ import java.security.Principal;
 import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Controller;
 
 /**
@@ -26,16 +26,16 @@ public class ChatMessageStompController {
 
     private final ChatMessageService chatMessageService;
     private final ChatRoomRepository chatRoomRepository;
-    private final SimpMessagingTemplate messagingTemplate;
+    private final ChatBroadcastPublisher broadcastPublisher;
 
     public ChatMessageStompController(
             ChatMessageService chatMessageService,
             ChatRoomRepository chatRoomRepository,
-            SimpMessagingTemplate messagingTemplate
+            ChatBroadcastPublisher broadcastPublisher
     ) {
         this.chatMessageService = chatMessageService;
         this.chatRoomRepository = chatRoomRepository;
-        this.messagingTemplate = messagingTemplate;
+        this.broadcastPublisher = broadcastPublisher;
     }
 
     @MessageMapping("/rooms/{artistId}/fan-message")
@@ -52,9 +52,9 @@ public class ChatMessageStompController {
                 .getOwnerUserId();
 
         // 보낸 팬 본인에게 echo (본인 UI에 저장 확정 반영)
-        messagingTemplate.convertAndSendToUser(fan.getName(), "/queue/rooms/" + artistId, response);
+        broadcastPublisher.toUser(fan.getName(), "/queue/rooms/" + artistId, response);
         // 아티스트 inbox — senderId로 어느 팬 스레드인지 클라이언트가 구분
-        messagingTemplate.convertAndSendToUser(String.valueOf(ownerUserId), "/queue/rooms/" + artistId + "/inbox", response);
+        broadcastPublisher.toUser(String.valueOf(ownerUserId), "/queue/rooms/" + artistId + "/inbox", response);
     }
 
     @MessageMapping("/rooms/{artistId}/artist-message")
@@ -67,6 +67,6 @@ public class ChatMessageStompController {
         ChatMessageResponse response = chatMessageService.sendArtistMessage(artistId, artist.userId(), request.content());
 
         // 방송: 이 방(topic)을 구독 중인 모든 팬에게 동시 전달
-        messagingTemplate.convertAndSend("/topic/rooms/" + artistId + "/broadcast", response);
+        broadcastPublisher.toTopic("/topic/rooms/" + artistId + "/broadcast", response);
     }
 }

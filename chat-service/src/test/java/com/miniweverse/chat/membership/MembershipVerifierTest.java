@@ -9,6 +9,7 @@ import static org.mockito.BDDMockito.willThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
+import com.miniweverse.chat.broadcast.ChatBroadcastPublisher;
 import java.time.LocalDateTime;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
@@ -18,7 +19,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 
 @Tag("unit")
 @ExtendWith(MockitoExtension.class)
@@ -34,13 +34,13 @@ class MembershipVerifierTest {
     @Mock
     private MembershipPeriodRepository membershipPeriodRepository;
     @Mock
-    private SimpMessagingTemplate messagingTemplate;
+    private ChatBroadcastPublisher broadcastPublisher;
 
     private MembershipVerifier verifier;
 
     @BeforeEach
     void setUp() {
-        verifier = new MembershipVerifier(membershipClient, membershipCache, membershipPeriodRepository, messagingTemplate);
+        verifier = new MembershipVerifier(membershipClient, membershipCache, membershipPeriodRepository, broadcastPublisher);
     }
 
     @Test
@@ -107,8 +107,8 @@ class MembershipVerifierTest {
         verify(membershipCache).put(FAN_USER_ID, ARTIST_ID, false);
         assertThat(openPeriod.getEndedAt()).isEqualTo(endedAt);
         verify(membershipPeriodRepository).save(openPeriod);
-        verify(messagingTemplate).convertAndSendToUser(
-                eq(String.valueOf(FAN_USER_ID)), eq("/queue/rooms/" + ARTIST_ID + "/notice"), any(Object.class)
+        verify(broadcastPublisher).toUser(
+                eq(String.valueOf(FAN_USER_ID)), eq("/queue/rooms/" + ARTIST_ID + "/notice"), any(MembershipExpiredNotice.class)
         );
     }
 }
