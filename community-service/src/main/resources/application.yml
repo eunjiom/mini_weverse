@@ -33,6 +33,10 @@ spring:
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
       properties:
         spring.json.add.type.headers: false
+        # send()가 Future를 반환하기 전 내부적으로 멈출 수 있는 최대 시간(메타데이터 조회,
+        # 버퍼 확보 등). 코드의 Future.get(3, SECONDS)와 맞춰서, 전체 대기가 3초 언저리로
+        # 끝나게 한다 — 이 값이 없으면 기본 60초까지 send() 호출 자체가 멈출 수 있다.
+        max.block.ms: 3000
     template:
       observation-enabled: true
   security:
@@ -71,9 +75,6 @@ jwt:
 
 cookie:
   secure: true
-
-chat-service:
-  base-url: ${CHAT_SERVICE_URL:http://localhost:8082}
 
 internal:
   service-secret: ${INTERNAL_SERVICE_SECRET:mini-weverse-internal-secret}
