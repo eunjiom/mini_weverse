@@ -72,9 +72,6 @@ jwt:
 cookie:
   secure: true
 
-chat-service:
-  base-url: ${CHAT_SERVICE_URL:http://localhost:8082}
-
 internal:
   service-secret: ${INTERNAL_SERVICE_SECRET:mini-weverse-internal-secret}
 

@@ -30,6 +30,17 @@ spring:
         spring.json.add.type.headers: false
     template:
       observation-enabled: true
+    consumer:
+      group-id: chat-service
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: com.miniweverse.common.membership
+        spring.json.value.default.type: com.miniweverse.common.membership.MembershipSyncEvent
+        spring.json.use.type.headers: false
+    listener:
+      observation-enabled: true
 
 jwt:
   public-key-path: keys/public.pem
