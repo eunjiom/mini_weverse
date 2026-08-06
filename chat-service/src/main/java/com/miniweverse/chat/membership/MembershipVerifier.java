@@ -69,20 +69,24 @@ public class MembershipVerifier {
      * 열려있던 기간 이력을 닫고, 그 팬이 지금 접속 중이면(화면을 이미 켜놓고 있었다면) 만료 알림을
      * 한 번 보낸다. 접속 중이 아니면 그냥 버려진다(별도 저장/재전송 안 함) — 다음에 REST로 이력을
      * 조회하면 403으로 걸러진다.
+     * 만료 알림은 열려있던 기간을 실제로 닫은 경우에만 보낸다 — Kafka는 최소 1번 전달이라 같은
+     * EXPIRED 이벤트가 중복으로 올 수 있는데, 매번 무조건 보내면 이미 닫힌 기간에 대해서도 팬에게
+     * 만료 알림이 중복으로 나간다.
      */
     public void markExpired(Long fanUserId, Long artistId, LocalDateTime periodEndedAt) {
         membershipCache.put(fanUserId, artistId, false);
-        if (periodEndedAt != null) {
-            membershipPeriodRepository.findOpenPeriod(fanUserId, artistId)
-                    .ifPresent(period -> {
-                        period.close(periodEndedAt);
-                        membershipPeriodRepository.save(period);
-                    });
+        if (periodEndedAt == null) {
+            return;
         }
-        broadcastPublisher.toUser(
-                String.valueOf(fanUserId),
-                "/queue/rooms/" + artistId + "/notice",
-                MembershipExpiredNotice.of(artistId)
-        );
+        membershipPeriodRepository.findOpenPeriod(fanUserId, artistId)
+                .ifPresent(period -> {
+                    period.close(periodEndedAt);
+                    membershipPeriodRepository.save(period);
+                    broadcastPublisher.toUser(
+                            String.valueOf(fanUserId),
+                            "/queue/rooms/" + artistId + "/notice",
+                            MembershipExpiredNotice.of(artistId)
+                    );
+                });
     }
 }

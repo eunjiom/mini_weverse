@@ -3,6 +3,9 @@ package com.miniweverse.membership.outbox;
 import com.miniweverse.common.membership.MembershipSyncEvent;
 import com.miniweverse.common.membership.MembershipSyncEventType;
 import com.miniweverse.common.membership.MembershipSyncTopics;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import org.springframework.kafka.KafkaException;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
@@ -18,6 +21,9 @@ import org.springframework.transaction.annotation.Transactional;
 public class MembershipOutboxEventProcessor {
 
     private static final int MAX_ATTEMPTS = 5;
+    // Kafka 응답을 무기한 기다리면 이 스케줄러 스레드가 멈춰서 폴링 자체가 안 돈다 — 폴링
+    // 주기(5초)보다 짧게 상한을 둬서, 응답이 없어도 실패로 기록하고 다음 폴링에 재시도되게 한다.
+    private static final long KAFKA_SEND_TIMEOUT_SECONDS = 3;
 
     private final MembershipOutboxEventRepository outboxEventRepository;
     private final KafkaTemplate<String, Object> kafkaTemplate;
@@ -42,9 +48,9 @@ public class MembershipOutboxEventProcessor {
             // 같은 팬의 이벤트가 순서 뒤바뀌지 않도록 fanUserId를 파티션 키로 써서, 같은 팬의
             // 이벤트는 항상 같은 파티션(따라서 같은 컨슈머 스레드)으로 간다.
             kafkaTemplate.send(MembershipSyncTopics.MEMBERSHIP_SYNC_EVENTS, String.valueOf(event.getFanUserId()), payload)
-                    .get();
+                    .get(KAFKA_SEND_TIMEOUT_SECONDS, TimeUnit.SECONDS);
             event.markSent();
-        } catch (KafkaException | InterruptedException | java.util.concurrent.ExecutionException e) {
+        } catch (KafkaException | InterruptedException | ExecutionException | TimeoutException e) {
             if (e instanceof InterruptedException) {
                 Thread.currentThread().interrupt();
             }
